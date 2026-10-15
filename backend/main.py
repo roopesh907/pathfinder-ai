@@ -10,7 +10,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, ValidationError
 
 import database
+import logging
 
+logger = logging.getLogger(__name__)
 load_dotenv()
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
@@ -486,6 +488,7 @@ async def list_conversations(
             "conversations": conversations,
         }
     except (psycopg.Error, RuntimeError):
+        logger.exception("PathFinder database operation failed")
         raise database_error()
 
 
@@ -518,6 +521,7 @@ async def list_conversation_messages(
     except HTTPException:
         raise
     except (psycopg.Error, RuntimeError):
+        logger.exception("PathFinder database operation failed")
         raise database_error()
 
 
@@ -547,6 +551,7 @@ async def chat(request: ChatRequest):
                 session_id,
             )
         except (psycopg.Error, RuntimeError):
+            logger.exception("PathFinder database operation failed")
             raise database_error()
 
         if not belongs:
@@ -641,6 +646,7 @@ async def chat(request: ChatRequest):
         )
 
     except (psycopg.Error, RuntimeError):
+        logger.exception("PathFinder database operation failed")
         raise database_error()
 
     return {
