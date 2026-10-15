@@ -581,7 +581,9 @@ export default function MissionControl({
 
             <button
               type="button"
-              onClick={() => markStuck(activeTask.id)}
+              onClick={() =>{ 
+                markStuck(activeTask.id) 
+                console.log("Mission Control: I'm stuck clicked");}}
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium text-zinc-300 transition-colors hover:border-indigo-400/30 hover:bg-indigo-500/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
             >
               <MessageCircle size={16} />
