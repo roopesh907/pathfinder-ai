@@ -1,4 +1,5 @@
-import { memo, useEffect, useState,} from "react";
+
+import { memo, useEffect, useState } from "react";
 import {
   AnimatePresence,
   LazyMotion,
@@ -8,9 +9,11 @@ import {
 } from "motion/react";
 import {
   ArrowRight,
+  History,
   LoaderCircle,
   PanelRight,
   PanelRightClose,
+  Plus,
   Send,
 } from "lucide-react";
 
@@ -40,8 +43,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+
 import { matchCareers, generateRoadmap } from "./services/api";
-import { sendChatMessage } from "./services/chat";
+import {
+  sendChatMessage,
+  getConversations,
+  getConversationMessages,
+  getActiveConversationId,
+  setActiveConversationId,
+  startNewConversation,
+} from "./services/chat";
 
 /* -------------------------------------------------------------------------- */
 /*  Glass styles                                                              */
@@ -49,6 +60,7 @@ import { sendChatMessage } from "./services/chat";
 
 const GLASS =
   "border border-white/10 bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]";
+
 const GLASS_INTERACTIVE = `${GLASS} transition-colors hover:border-white/20 hover:bg-white/[0.07]`;
 
 /* -------------------------------------------------------------------------- */
@@ -119,8 +131,10 @@ function useMediaQuery(query) {
   useEffect(() => {
     const mq = window.matchMedia(query);
     const handler = (event) => setMatches(event.matches);
+
     setMatches(mq.matches);
     mq.addEventListener("change", handler);
+
     return () => mq.removeEventListener("change", handler);
   }, [query]);
 
@@ -131,7 +145,6 @@ function useMediaQuery(query) {
 /*  Small components                                                          */
 /* -------------------------------------------------------------------------- */
 
-// Renders **bold** segments instead of printing the asterisks.
 function RichText({ text }) {
   return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
     part.startsWith("**") && part.endsWith("**") ? (
@@ -179,7 +192,6 @@ function Chip({ active, onClick, children }) {
   );
 }
 
-// Plain buttons with explicit state, so selection never depends on Radix internals.
 function OptionButton({ active, onClick, children }) {
   return (
     <button
@@ -232,12 +244,14 @@ function ProfileSummary({ profile }) {
           {profile.weekly_hours} hours per week
         </span>
       </span>
+
       <span>
         <span className="text-zinc-500">Budget: </span>
         <span className="text-zinc-200">
           {formatRupees(profile.monthly_budget)} per month
         </span>
       </span>
+
       <span>
         <span className="text-zinc-500">Level: </span>
         <span className="text-zinc-200">{profile.education_level}</span>
@@ -258,6 +272,7 @@ const CareerCard = memo(function CareerCard({ career, onSelect }) {
           <CardTitle className="font-medium leading-6 text-zinc-100">
             {career.title}
           </CardTitle>
+
           {career.field && (
             <span className="shrink-0 text-xs text-zinc-500">
               {career.field}
@@ -278,6 +293,7 @@ const CareerCard = memo(function CareerCard({ career, onSelect }) {
               {score} / 100
             </span>
           </div>
+
           <Progress
             value={score}
             className="mt-2 h-1 bg-white/10 [&>div]:bg-indigo-300"
@@ -313,6 +329,7 @@ function RoadmapSkeleton() {
       <Skeleton className="h-24 w-full rounded-xl bg-white/6" />
       <Skeleton className="h-14 w-full rounded-xl bg-white/6" />
       <Skeleton className="h-14 w-full rounded-xl bg-white/6" />
+
       <p className="text-center text-xs text-zinc-500">
         Building your learning plan
       </p>
@@ -326,7 +343,9 @@ function RoadmapView({ roadmap, loading, error }) {
   if (error) {
     return (
       <Alert variant="destructive" className="border-rose-900 bg-rose-950/40">
-        <AlertDescription className="text-rose-200">{error}</AlertDescription>
+        <AlertDescription className="text-rose-200">
+          {error}
+        </AlertDescription>
       </Alert>
     );
   }
@@ -349,6 +368,7 @@ function RoadmapView({ roadmap, loading, error }) {
         <h3 className="mt-1 text-lg font-semibold text-zinc-100">
           {roadmap.career?.title || "Your career path"}
         </h3>
+
         <dl className="mt-4 grid grid-cols-2 gap-4 text-sm">
           <div>
             <dt className="text-xs text-zinc-500">Estimated timeline</dt>
@@ -356,6 +376,7 @@ function RoadmapView({ roadmap, loading, error }) {
               {roadmap.estimated_duration_weeks ?? "—"} weeks
             </dd>
           </div>
+
           <div>
             <dt className="text-xs text-zinc-500">Weekly commitment</dt>
             <dd className="mt-1 font-medium tabular-nums text-zinc-100">
@@ -369,6 +390,7 @@ function RoadmapView({ roadmap, loading, error }) {
         <h4 className="mb-3 text-sm font-medium text-zinc-200">
           Skills to develop
         </h4>
+
         <div className="flex flex-wrap gap-2">
           {(roadmap.skills_to_develop || []).length ? (
             roadmap.skills_to_develop.map((skill) => (
@@ -390,6 +412,7 @@ function RoadmapView({ roadmap, loading, error }) {
         <h4 className="mb-4 text-sm font-medium text-zinc-200">
           Learning phases
         </h4>
+
         <ol className="space-y-5">
           {(roadmap.phases || []).map((phase, index) => (
             <li
@@ -399,9 +422,11 @@ function RoadmapView({ roadmap, loading, error }) {
               <p className="text-xs text-zinc-500">
                 Phase {phase.phase ?? index + 1} · {phase.duration_weeks} weeks
               </p>
+
               <p className="mt-1 text-sm font-medium text-zinc-100">
                 {phase.title}
               </p>
+
               {!!phase.skills?.length && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {phase.skills.map((skill) => (
@@ -411,6 +436,7 @@ function RoadmapView({ roadmap, loading, error }) {
                   ))}
                 </div>
               )}
+
               {phase.milestone && (
                 <p className="mt-2 text-xs leading-5 text-zinc-400">
                   <span className="text-zinc-500">Milestone: </span>
@@ -424,7 +450,9 @@ function RoadmapView({ roadmap, loading, error }) {
 
       {roadmap.resource_guidance && (
         <section>
-          <h4 className="mb-2 text-sm font-medium text-zinc-200">Resources</h4>
+          <h4 className="mb-2 text-sm font-medium text-zinc-200">
+            Resources
+          </h4>
           <p className="text-xs leading-5 text-zinc-400">
             {roadmap.resource_guidance}
           </p>
@@ -463,6 +491,7 @@ function WorkspaceContent({
         >
           Matches
         </TabsTrigger>
+
         <TabsTrigger
           value="roadmap"
           className="rounded-md py-1.5 text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-300 data-[state=active]:bg-indigo-500/20 data-[state=active]:text-indigo-100 data-[state=active]:shadow-none"
@@ -481,6 +510,7 @@ function WorkspaceContent({
               Scores measure overlap with our catalog. They are not a prediction
               of hiring outcomes.
             </p>
+
             {recommendations.map((career) => (
               <CareerCard
                 key={career.career_id || career.id || career.title}
@@ -552,10 +582,12 @@ const ChatInput = memo(function ChatInput({ onSend, disabled }) {
         placeholder="Ask about careers, timelines, or what to learn next"
         className="max-h-40 min-h-[58px] resize-y border-0 bg-transparent px-3 py-2 text-sm leading-6 text-zinc-100 shadow-none placeholder:text-zinc-600 focus-visible:ring-0"
       />
+
       <div className="flex items-center justify-between gap-3 px-2 pb-1">
         <p className="text-[11px] text-zinc-600">
           Enter to send, Shift + Enter for a new line
         </p>
+
         <Button
           type="submit"
           size="icon"
@@ -612,6 +644,7 @@ function ProfileForm({ initialProfile, onSubmit, onCancel, submitting }) {
             {draft.weekly_hours} hours
           </span>
         </div>
+
         <Slider
           aria-label="Hours per week"
           min={1}
@@ -620,6 +653,7 @@ function ProfileForm({ initialProfile, onSubmit, onCancel, submitting }) {
           value={[draft.weekly_hours]}
           onValueChange={([value]) => update("weekly_hours", value)}
         />
+
         <p className="text-xs text-zinc-500">
           The time you can realistically spend learning each week.
         </p>
@@ -634,6 +668,7 @@ function ProfileForm({ initialProfile, onSubmit, onCancel, submitting }) {
             {formatRupees(draft.monthly_budget)}
           </span>
         </div>
+
         <Slider
           aria-label="Monthly budget in rupees"
           min={0}
@@ -642,6 +677,7 @@ function ProfileForm({ initialProfile, onSubmit, onCancel, submitting }) {
           value={[draft.monthly_budget]}
           onValueChange={([value]) => update("monthly_budget", value)}
         />
+
         <p className="text-xs text-zinc-500">
           Set to ₹0 to use free resources only.
         </p>
@@ -651,6 +687,7 @@ function ProfileForm({ initialProfile, onSubmit, onCancel, submitting }) {
         <Label className="text-sm font-medium text-zinc-200">
           Education level
         </Label>
+
         <div
           role="radiogroup"
           aria-label="Education level"
@@ -670,6 +707,7 @@ function ProfileForm({ initialProfile, onSubmit, onCancel, submitting }) {
 
       <section className={`space-y-3 rounded-xl p-5 ${GLASS}`}>
         <Label className="text-sm font-medium text-zinc-200">Interests</Label>
+
         <div className="flex flex-wrap gap-2">
           {INTEREST_OPTIONS.map((interest) => (
             <Chip
@@ -681,6 +719,7 @@ function ProfileForm({ initialProfile, onSubmit, onCancel, submitting }) {
             </Chip>
           ))}
         </div>
+
         {draft.interests.length === 0 && (
           <p className="text-xs text-rose-300">Select at least one interest.</p>
         )}
@@ -690,6 +729,7 @@ function ProfileForm({ initialProfile, onSubmit, onCancel, submitting }) {
         <Label className="text-sm font-medium text-zinc-200">
           Current skills
         </Label>
+
         <div className="flex flex-wrap gap-2">
           {SKILL_OPTIONS.map((skill) => (
             <Chip
@@ -707,6 +747,7 @@ function ProfileForm({ initialProfile, onSubmit, onCancel, submitting }) {
         <Label htmlFor="goal" className="text-sm font-medium text-zinc-200">
           Goal <span className="font-normal text-zinc-500">(optional)</span>
         </Label>
+
         <Textarea
           id="goal"
           value={draft.goals}
@@ -733,6 +774,7 @@ function ProfileForm({ initialProfile, onSubmit, onCancel, submitting }) {
         ) : (
           <span />
         )}
+
         <Button
           type="submit"
           disabled={!canSubmit}
@@ -766,6 +808,15 @@ export default function App() {
   const [matchError, setMatchError] = useState("");
   const [roadmapError, setRoadmapError] = useState("");
 
+  // Conversation history state.
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [conversations, setConversations] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState("");
+  const [activeConversationId, setActiveConversationIdState] = useState(
+    () => getActiveConversationId(),
+  );
+
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const isChat = screen === "chat";
 
@@ -776,12 +827,108 @@ export default function App() {
     ]);
   }
 
+  /* -------------------------- Conversation history ----------------------- */
+
+  async function refreshConversations() {
+    setHistoryLoading(true);
+    setHistoryError("");
+
+    try {
+      const items = await getConversations();
+      setConversations(Array.isArray(items) ? items : []);
+    } catch (err) {
+      setHistoryError(
+        err.message || "Couldn't load your conversation history.",
+      );
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  function handleNewChat() {
+    startNewConversation();
+    setActiveConversationIdState(null);
+    setMessages([]);
+    setHistoryError("");
+    setHistoryOpen(false);
+    setScreen("chat");
+  }
+
+  async function handleLoadConversation(conversation) {
+    if (!conversation?.id) return;
+
+    setHistoryLoading(true);
+    setHistoryError("");
+
+    try {
+      const items = await getConversationMessages(conversation.id);
+
+      setActiveConversationId(conversation.id);
+      setActiveConversationIdState(conversation.id);
+
+      setMessages(
+        (Array.isArray(items) ? items : []).map((message) => ({
+          id: message.id,
+          role: message.role,
+          content: message.content,
+        })),
+      );
+
+      setHistoryOpen(false);
+      setScreen("chat");
+    } catch (err) {
+      setHistoryError(
+        err.message || "Couldn't load this conversation.",
+      );
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (screen !== "chat") return;
+
+    let cancelled = false;
+
+    async function loadHistory() {
+      setHistoryLoading(true);
+      setHistoryError("");
+
+      try {
+        const items = await getConversations();
+
+        if (!cancelled) {
+          setConversations(Array.isArray(items) ? items : []);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setHistoryError(
+            err.message || "Couldn't load your conversation history.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setHistoryLoading(false);
+        }
+      }
+    }
+
+    loadHistory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [screen]);
+
+  /* ------------------------------ Career flow ---------------------------- */
+
   async function findMatches(nextProfile) {
     setMatchBusy(true);
     setMatchError("");
 
     try {
       const result = await matchCareers(nextProfile);
+
       if (!Array.isArray(result?.recommendations)) {
         throw new Error("The career service returned an unexpected response.");
       }
@@ -800,6 +947,7 @@ export default function App() {
       );
     } catch (err) {
       setMatchError(err.message || "Couldn't connect to the career service.");
+
       addMessage(
         "assistant",
         "The career service is unavailable. Make sure the backend is running, then try again.",
@@ -811,19 +959,25 @@ export default function App() {
 
   async function handleProfileSubmit(nextProfile) {
     const isUpdate = profile !== null;
+
     setProfile(nextProfile);
     setScreen("chat");
+
     addMessage(
       "assistant",
       isUpdate
         ? "Profile updated. Refreshing your matches."
         : "Profile saved. Finding career matches for you.",
     );
+
     await findMatches(nextProfile);
   }
 
+  /* ------------------------------- Chat flow ----------------------------- */
+
   async function handleSend(rawText) {
     const message = rawText.trim();
+
     if (!message || chatBusy) return;
 
     addMessage("user", message);
@@ -832,6 +986,12 @@ export default function App() {
     try {
       const reply = await sendChatMessage(message, profile);
       addMessage("assistant", reply);
+
+      // The backend may create a conversation on the first message.
+      setActiveConversationIdState(getActiveConversationId());
+
+      // Refresh the sidebar after the message has been saved.
+      void refreshConversations();
     } catch (err) {
       addMessage(
         "assistant",
@@ -842,6 +1002,8 @@ export default function App() {
       setChatBusy(false);
     }
   }
+
+  /* ------------------------------ Roadmaps ------------------------------- */
 
   async function handleRoadmap(career) {
     if (!profile || !career) return;
@@ -857,7 +1019,9 @@ export default function App() {
         profile,
         career.career_id || career.id,
       );
+
       setRoadmap(result);
+
       addMessage(
         "assistant",
         `Your roadmap for **${result.career?.title || career.title}** is ready. It assumes ${result.weekly_hours} hours per week over about ${result.estimated_duration_weeks} weeks.`,
@@ -868,6 +1032,8 @@ export default function App() {
       setRoadmapBusy(false);
     }
   }
+
+  /* ------------------------------ Workspace ------------------------------ */
 
   const workspace = (
     <WorkspaceContent
@@ -881,9 +1047,10 @@ export default function App() {
     />
   );
 
+  /* --------------------------------- Page -------------------------------- */
+
   const page = (
     <main className="relative z-10 min-h-screen w-full text-zinc-100">
-      {/* Static colour wash. Painted once, so it costs nothing per frame. */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(60%_50%_at_15%_0%,rgba(99,102,241,0.20),transparent),radial-gradient(45%_40%_at_90%_100%,rgba(56,189,248,0.12),transparent)]"
@@ -899,6 +1066,20 @@ export default function App() {
             <div className="flex items-center gap-2">
               <Button
                 type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setHistoryOpen(true);
+                  void refreshConversations();
+                }}
+                className="border-white/10 bg-white/[0.03] text-xs text-zinc-300 hover:bg-white/[0.07] hover:text-zinc-100"
+              >
+                <History size={15} />
+                <span>History</span>
+              </Button>
+
+              <Button
+                type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => setScreen("onboarding")}
@@ -906,6 +1087,7 @@ export default function App() {
               >
                 Edit profile
               </Button>
+
               <Button
                 type="button"
                 variant="outline"
@@ -920,6 +1102,7 @@ export default function App() {
                 ) : (
                   <PanelRight size={15} />
                 )}
+
                 <span className="hidden sm:inline">
                   {workspaceOpen ? "Hide workspace" : "Workspace"}
                 </span>
@@ -935,6 +1118,7 @@ export default function App() {
             <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">
               Set up your profile
             </h1>
+
             <p className="mt-2 text-sm leading-6 text-zinc-400">
               We use this to match careers and estimate a realistic plan. You
               can change it at any time.
@@ -957,6 +1141,7 @@ export default function App() {
                 <h1 className="text-xl font-semibold tracking-tight text-zinc-100">
                   Career chat
                 </h1>
+
                 <p className="mt-1 text-sm text-zinc-400">
                   Ask about your matches, timelines, or what to learn next.
                 </p>
@@ -996,6 +1181,7 @@ export default function App() {
                   <p className="mb-2 text-xs text-zinc-500">
                     Suggested questions
                   </p>
+
                   <div className="flex flex-col items-start gap-2">
                     {CHAT_SUGGESTIONS.map((suggestion) => (
                       <Button
@@ -1018,6 +1204,7 @@ export default function App() {
                   onSend={handleSend}
                   disabled={chatBusy || matchBusy}
                 />
+
                 <p className="mt-2 text-center text-[11px] text-zinc-600">
                   Scores are heuristic indicators, not employment predictions.
                 </p>
@@ -1040,10 +1227,12 @@ export default function App() {
                     <p className="text-sm font-medium text-zinc-100">
                       Workspace
                     </p>
+
                     <p className="mt-0.5 text-xs text-zinc-500">
                       Matches and learning plan
                     </p>
                   </div>
+
                   {workspace}
                 </m.aside>
               )}
@@ -1052,6 +1241,7 @@ export default function App() {
         </div>
       )}
 
+      {/* Mobile and tablet workspace drawer */}
       {isChat && !isDesktop && (
         <Sheet open={workspaceOpen} onOpenChange={setWorkspaceOpen}>
           <SheetContent
@@ -1064,7 +1254,116 @@ export default function App() {
                 Matches and learning plan
               </SheetDescription>
             </SheetHeader>
+
             {workspace}
+          </SheetContent>
+        </Sheet>
+      )}
+
+      {/* Conversation history drawer */}
+      {isChat && (
+        <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
+          <SheetContent
+            side="left"
+            className="flex w-full flex-col gap-0 border-white/10 bg-zinc-950 p-0 text-zinc-100 sm:max-w-sm"
+          >
+            <SheetHeader className="border-b border-white/10 p-4 text-left">
+              <SheetTitle className="text-zinc-100">
+                Chat history
+              </SheetTitle>
+
+              <SheetDescription className="text-xs text-zinc-500">
+                Your saved PathFinder conversations
+              </SheetDescription>
+            </SheetHeader>
+
+            <div className="border-b border-white/10 p-4">
+              <Button
+                type="button"
+                onClick={handleNewChat}
+                className="w-full bg-indigo-500 text-white hover:bg-indigo-400"
+              >
+                <Plus size={16} />
+                New Chat
+              </Button>
+            </div>
+
+            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
+              {historyError && (
+                <Alert className="border-rose-900 bg-rose-950/40">
+                  <AlertDescription className="text-xs text-rose-200">
+                    {historyError}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {historyLoading && (
+                <div className="flex items-center justify-center gap-2 py-6 text-xs text-zinc-500">
+                  <LoaderCircle size={14} className="animate-spin" />
+                  Loading conversations...
+                </div>
+              )}
+
+              {!historyLoading &&
+                !historyError &&
+                conversations.length === 0 && (
+                  <div className="px-3 py-12 text-center">
+                    <History
+                      size={24}
+                      className="mx-auto mb-3 text-zinc-600"
+                    />
+
+                    <p className="text-sm text-zinc-300">
+                      No saved conversations yet
+                    </p>
+
+                    <p className="mt-2 text-xs leading-5 text-zinc-500">
+                      Your chats will appear here after you send a message.
+                    </p>
+                  </div>
+                )}
+
+              {conversations.map((conversation) => (
+                <button
+                  key={conversation.id}
+                  type="button"
+                  disabled={historyLoading}
+                  onClick={() => handleLoadConversation(conversation)}
+                  className={`w-full rounded-xl border p-3 text-left transition-colors disabled:opacity-50 ${
+                    activeConversationId === conversation.id
+                      ? "border-indigo-400/30 bg-indigo-500/10"
+                      : "border-white/10 bg-white/[0.02] hover:bg-white/[0.06]"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <History
+                      size={16}
+                      className="mt-0.5 shrink-0 text-indigo-300"
+                    />
+
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-zinc-200">
+                        {conversation.title &&
+                        conversation.title !== "New conversation"
+                          ? conversation.title
+                          : "Conversation"}
+                      </p>
+
+                      <p className="mt-1 text-xs text-zinc-500">
+                        {conversation.updated_at
+                          ? new Date(
+                              conversation.updated_at,
+                            ).toLocaleString([], {
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            })
+                          : "Saved conversation"}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
           </SheetContent>
         </Sheet>
       )}
@@ -1075,10 +1374,10 @@ export default function App() {
     <MotionConfig reducedMotion="user">
       <LazyMotion features={domAnimation} strict>
         {isChat ? (
-          // Chat: lightweight drifting dot grid.
-          <DriftGrid className="bg-[#0a0c12] text-zinc-400">{page}</DriftGrid>
+          <DriftGrid className="bg-[#0a0c12] text-zinc-400">
+            {page}
+          </DriftGrid>
         ) : (
-          // Selection: Kokonut background paths. Only one animated background is mounted at a time.
           <BackgroundPaths
             count={10}
             speed={0.4}
