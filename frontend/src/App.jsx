@@ -43,12 +43,13 @@ import ProfileSummary from "./components/profile/ProfileSummary";
 import ChatInput from "./components/chat/ChatInput";
 import MessageBubble from "./components/chat/MessageBubble";
 import WorkspaceContent from "./components/workspace/WorkspaceContent";
+import Navbar from "./components/Navbar";
+import MissionControl from "./components/mission/MissionControl";
 
 import { GLASS } from "./constants/styles";
 import { DEFAULT_PROFILE } from "./constants/profile";
 
-const GLASS_INTERACTIVE =
-  `${GLASS} transition-colors hover:border-white/20 hover:bg-white/[0.07]`;
+const GLASS_INTERACTIVE = `${GLASS} transition-colors hover:border-white/20 hover:bg-white/[0.07]`;
 
 const CHAT_SUGGESTIONS = [
   "Which match should I start with?",
@@ -95,11 +96,10 @@ export default function App() {
   const [conversations, setConversations] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
-  const [deletingConversationId, setDeletingConversationId] =
-    useState(null);
+  const [deletingConversationId, setDeletingConversationId] = useState(null);
 
-  const [activeConversationId, setActiveConversationIdState] = useState(
-    () => getActiveConversationId(),
+  const [activeConversationId, setActiveConversationIdState] = useState(() =>
+    getActiveConversationId(),
   );
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
@@ -144,11 +144,7 @@ export default function App() {
   }
 
   async function handleLoadConversation(conversation) {
-    if (
-      !conversation?.id ||
-      historyLoading ||
-      deletingConversationId
-    ) {
+    if (!conversation?.id || historyLoading || deletingConversationId) {
       return;
     }
 
@@ -172,26 +168,19 @@ export default function App() {
       setHistoryOpen(false);
       setScreen("chat");
     } catch (err) {
-      setHistoryError(
-        err.message || "Couldn't load this conversation.",
-      );
+      setHistoryError(err.message || "Couldn't load this conversation.");
     } finally {
       setHistoryLoading(false);
     }
   }
 
   async function handleDeleteConversation(conversation) {
-    if (
-      !conversation?.id ||
-      historyLoading ||
-      deletingConversationId
-    ) {
+    if (!conversation?.id || historyLoading || deletingConversationId) {
       return;
     }
 
     const title =
-      conversation.title &&
-      conversation.title !== "New conversation"
+      conversation.title && conversation.title !== "New conversation"
         ? conversation.title
         : "this conversation";
 
@@ -219,8 +208,7 @@ export default function App() {
       }
     } catch (err) {
       setHistoryError(
-        err.message ||
-          "Couldn't delete this conversation. Please try again.",
+        err.message || "Couldn't delete this conversation. Please try again.",
       );
     } finally {
       setDeletingConversationId(null);
@@ -272,9 +260,7 @@ export default function App() {
       const result = await matchCareers(nextProfile);
 
       if (!Array.isArray(result?.recommendations)) {
-        throw new Error(
-          "The career service returned an unexpected response.",
-        );
+        throw new Error("The career service returned an unexpected response.");
       }
 
       setRecommendations(result.recommendations);
@@ -290,9 +276,7 @@ export default function App() {
           : "No matches were found for this profile. Try adding more interests or skills.",
       );
     } catch (err) {
-      setMatchError(
-        err.message || "Couldn't connect to the career service.",
-      );
+      setMatchError(err.message || "Couldn't connect to the career service.");
 
       addMessage(
         "assistant",
@@ -372,9 +356,7 @@ export default function App() {
         `Your roadmap for **${result.career?.title || career.title}** is ready. It assumes ${result.weekly_hours} hours per week over about ${result.estimated_duration_weeks} weeks.`,
       );
     } catch (err) {
-      setRoadmapError(
-        err.message || "Couldn't generate your roadmap.",
-      );
+      setRoadmapError(err.message || "Couldn't generate your roadmap.");
     } finally {
       setRoadmapBusy(false);
     }
@@ -391,6 +373,13 @@ export default function App() {
       roadmap={roadmap}
       roadmapBusy={roadmapBusy}
       roadmapError={roadmapError}
+      missionContent={<MissionControl
+      roadmap={roadmap}
+      loading={roadmapBusy}
+      error={roadmapError}
+      recommendations={recommendations}
+      onChooseCareer={handleRoadmap}
+    />}
     />
   );
 
@@ -403,63 +392,60 @@ export default function App() {
         className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(60%_50%_at_15%_0%,rgba(99,102,241,0.20),transparent),radial-gradient(45%_40%_at_90%_100%,rgba(56,189,248,0.12),transparent)]"
       />
 
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-zinc-950/80">
-        <div className="mx-auto flex h-16 max-w-[1500px] items-center justify-between gap-3 px-4 sm:px-6">
-          <span className="text-sm font-semibold tracking-tight text-zinc-100">
-            PathFinder
-          </span>
+      <Navbar
+        links={
+          isChat
+            ? [
+                { label: "Dashboard", href: "/dashboard" },
+                { label: "Career paths", href: "/careers" },
+              ]
+            : [
+                { label: "Explore", href: "/#explore" },
+                { label: "Career paths", href: "/careers" },
+                { label: "How it works", href: "/#how-it-works" },
+              ]
+        }
+        ctaLabel={isChat ? "Edit profile" : "Find my path"}
+        ctaHref={isChat ? "/onboarding" : "/dashboard"}
+      />
 
-          {isChat && (
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setHistoryOpen(true);
-                  void refreshConversations();
-                }}
-                className="border-white/10 bg-white/[0.03] text-xs text-zinc-300 hover:bg-white/[0.07] hover:text-zinc-100"
-              >
-                <History size={15} />
-                <span>History</span>
-              </Button>
+      {isChat && (
+        <div className="relative z-20 flex items-center justify-end gap-2 border-b border-white/[0.06] bg-zinc-950/60 px-4 py-2 sm:px-6">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setHistoryOpen(true);
+              void refreshConversations();
+            }}
+            className="border-white/10 bg-white/[0.03] text-xs text-zinc-300 hover:bg-white/[0.07] hover:text-zinc-100"
+          >
+            <History size={15} />
+            <span>History</span>
+          </Button>
 
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setScreen("onboarding")}
-                className="text-xs text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100"
-              >
-                Edit profile
-              </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setWorkspaceOpen((open) => !open)}
+            aria-expanded={workspaceOpen}
+            aria-label={workspaceOpen ? "Close workspace" : "Open workspace"}
+            className="border-white/10 bg-white/[0.03] text-xs text-zinc-300 hover:bg-white/[0.07] hover:text-zinc-100"
+          >
+            {workspaceOpen ? (
+              <PanelRightClose size={15} />
+            ) : (
+              <PanelRight size={15} />
+            )}
 
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setWorkspaceOpen((open) => !open)}
-                aria-expanded={workspaceOpen}
-                aria-label={
-                  workspaceOpen ? "Close workspace" : "Open workspace"
-                }
-                className="border-white/10 bg-white/[0.03] text-xs text-zinc-300 hover:bg-white/[0.07] hover:text-zinc-100"
-              >
-                {workspaceOpen ? (
-                  <PanelRightClose size={15} />
-                ) : (
-                  <PanelRight size={15} />
-                )}
-
-                <span className="hidden sm:inline">
-                  {workspaceOpen ? "Hide workspace" : "Workspace"}
-                </span>
-              </Button>
-            </div>
-          )}
+            <span className="hidden sm:inline">
+              {workspaceOpen ? "Hide workspace" : "Workspace"}
+            </span>
+          </Button>
         </div>
-      </header>
+      )}
 
       {!isChat ? (
         <div className="mx-auto max-w-2xl px-4 py-12 sm:px-8">
@@ -469,8 +455,8 @@ export default function App() {
             </h1>
 
             <p className="mt-2 text-sm leading-6 text-zinc-400">
-              We use this to match careers and estimate a realistic plan.
-              You can change it at any time.
+              We use this to match careers and estimate a realistic plan. You
+              can change it at any time.
             </p>
           </div>
 
@@ -504,18 +490,12 @@ export default function App() {
                 aria-relevant="additions"
               >
                 {messages.map((message) => (
-                  <MessageBubble
-                    key={message.id}
-                    message={message}
-                  />
+                  <MessageBubble key={message.id} message={message} />
                 ))}
 
                 {(matchBusy || chatBusy) && (
                   <div className="flex items-center gap-2 text-xs text-zinc-500">
-                    <LoaderCircle
-                      size={14}
-                      className="animate-spin"
-                    />
+                    <LoaderCircle size={14} className="animate-spin" />
                     {matchBusy
                       ? "Comparing your profile with career paths"
                       : "Thinking"}
@@ -598,18 +578,13 @@ export default function App() {
 
       {/* Mobile and tablet workspace drawer */}
       {isChat && !isDesktop && (
-        <Sheet
-          open={workspaceOpen}
-          onOpenChange={setWorkspaceOpen}
-        >
+        <Sheet open={workspaceOpen} onOpenChange={setWorkspaceOpen}>
           <SheetContent
             side="right"
             className="flex w-full flex-col gap-0 border-white/10 bg-zinc-950 p-0 text-zinc-100 sm:max-w-md"
           >
             <SheetHeader className="border-b border-white/10 p-4">
-              <SheetTitle className="text-zinc-100">
-                Workspace
-              </SheetTitle>
+              <SheetTitle className="text-zinc-100">Workspace</SheetTitle>
 
               <SheetDescription className="text-xs text-zinc-500">
                 Matches and learning plan
@@ -623,18 +598,13 @@ export default function App() {
 
       {/* Conversation history drawer */}
       {isChat && (
-        <Sheet
-          open={historyOpen}
-          onOpenChange={setHistoryOpen}
-        >
+        <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
           <SheetContent
             side="left"
             className="flex w-full flex-col gap-0 border-white/10 bg-zinc-950 p-0 text-zinc-100 sm:max-w-sm"
           >
             <SheetHeader className="border-b border-white/10 p-4 text-left">
-              <SheetTitle className="text-zinc-100">
-                Chat history
-              </SheetTitle>
+              <SheetTitle className="text-zinc-100">Chat history</SheetTitle>
 
               <SheetDescription className="text-xs text-zinc-500">
                 Your saved PathFinder conversations
@@ -663,10 +633,7 @@ export default function App() {
 
               {historyLoading && (
                 <div className="flex items-center justify-center gap-2 py-6 text-xs text-zinc-500">
-                  <LoaderCircle
-                    size={14}
-                    className="animate-spin"
-                  />
+                  <LoaderCircle size={14} className="animate-spin" />
                   Loading conversations...
                 </div>
               )}
@@ -675,10 +642,7 @@ export default function App() {
                 !historyError &&
                 conversations.length === 0 && (
                   <div className="px-3 py-12 text-center">
-                    <History
-                      size={24}
-                      className="mx-auto mb-3 text-zinc-600"
-                    />
+                    <History size={24} className="mx-auto mb-3 text-zinc-600" />
 
                     <p className="text-sm text-zinc-300">
                       No saved conversations yet
@@ -691,11 +655,9 @@ export default function App() {
                 )}
 
               {conversations.map((conversation) => {
-                const isDeleting =
-                  deletingConversationId === conversation.id;
+                const isDeleting = deletingConversationId === conversation.id;
 
-                const isActive =
-                  activeConversationId === conversation.id;
+                const isActive = activeConversationId === conversation.id;
 
                 return (
                   <div
@@ -713,9 +675,7 @@ export default function App() {
                         Boolean(deletingConversationId) ||
                         chatBusy
                       }
-                      onClick={() =>
-                        handleLoadConversation(conversation)
-                      }
+                      onClick={() => handleLoadConversation(conversation)}
                       className="flex min-w-0 flex-1 items-start gap-3 rounded-lg p-1 text-left disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <History
@@ -733,12 +693,13 @@ export default function App() {
 
                         <p className="mt-1 text-xs text-zinc-500">
                           {conversation.updated_at
-                            ? new Date(
-                                conversation.updated_at,
-                              ).toLocaleString([], {
-                                dateStyle: "medium",
-                                timeStyle: "short",
-                              })
+                            ? new Date(conversation.updated_at).toLocaleString(
+                                [],
+                                {
+                                  dateStyle: "medium",
+                                  timeStyle: "short",
+                                },
+                              )
                             : "Saved conversation"}
                         </p>
                       </div>
@@ -757,16 +718,11 @@ export default function App() {
                         conversation.title || "conversation"
                       }`}
                       title="Delete conversation"
-                      onClick={() =>
-                        handleDeleteConversation(conversation)
-                      }
+                      onClick={() => handleDeleteConversation(conversation)}
                       className="h-9 w-9 shrink-0 self-center text-zinc-500 hover:bg-rose-500/10 hover:text-rose-300 disabled:opacity-40"
                     >
                       {isDeleting ? (
-                        <LoaderCircle
-                          size={15}
-                          className="animate-spin"
-                        />
+                        <LoaderCircle size={15} className="animate-spin" />
                       ) : (
                         <Trash2 size={15} />
                       )}
@@ -791,9 +747,7 @@ export default function App() {
     <MotionConfig reducedMotion="user">
       <LazyMotion features={domAnimation} strict>
         {isChat ? (
-          <DriftGrid className="bg-[#0a0c12] text-zinc-400">
-            {page}
-          </DriftGrid>
+          <DriftGrid className="bg-[#0a0c12] text-zinc-400">{page}</DriftGrid>
         ) : (
           <BackgroundPaths
             count={10}
