@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AnimatePresence,
   LazyMotion,
@@ -13,6 +13,7 @@ import {
   PanelRightClose,
   Plus,
   Trash2,
+  GripVertical,
 } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -57,6 +58,25 @@ const CHAT_SUGGESTIONS = [
   "What should I learn first?",
 ];
 
+const MIN_WORKSPACE_WIDTH = 320;
+const MIN_CHAT_WIDTH = 360;
+const DEFAULT_WORKSPACE_WIDTH = 440;
+const MAX_WORKSPACE_WIDTH = 720;
+
+function clampWorkspaceWidth(width) {
+  const maxWidth = Math.max(
+    MIN_WORKSPACE_WIDTH,
+    Math.min(
+      MAX_WORKSPACE_WIDTH,
+      window.innerWidth - MIN_CHAT_WIDTH,
+    ),
+  );
+
+  return Math.round(
+    Math.max(MIN_WORKSPACE_WIDTH, Math.min(maxWidth, width)),
+  );
+}
+
 function useMediaQuery(query) {
   const [matches, setMatches] = useState(
     () => window.matchMedia(query).matches,
@@ -91,6 +111,13 @@ export default function App() {
   const [matchError, setMatchError] = useState("");
   const [roadmapError, setRoadmapError] = useState("");
 
+  // Desktop workspace resizing.
+  const [workspaceWidth, setWorkspaceWidth] = useState(
+    DEFAULT_WORKSPACE_WIDTH,
+  );
+  const [isResizingWorkspace, setIsResizingWorkspace] = useState(false);
+  const resizeOrigin = useRef(null);
+
   // Conversation history state.
   const [historyOpen, setHistoryOpen] = useState(false);
   const [conversations, setConversations] = useState([]);
@@ -104,6 +131,104 @@ export default function App() {
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const isChat = screen === "chat";
+
+  // Track pointer movement globally so dragging remains smooth even if
+  // the pointer briefly moves outside the divider.
+  useEffect(() => {
+    if (!isResizingWorkspace) return;
+
+    const handlePointerMove = (event) => {
+      if (!resizeOrigin.current) return;
+
+      const { pointerX, initialWidth } = resizeOrigin.current;
+
+      // The workspace is attached to the right edge. Moving its divider
+      // left increases workspace width; moving right decreases it.
+      setWorkspaceWidth(
+        clampWorkspaceWidth(
+          initialWidth + pointerX - event.clientX,
+        ),
+      );
+    };
+
+    const handlePointerUp = () => {
+      setIsResizingWorkspace(false);
+      resizeOrigin.current = null;
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setIsResizingWorkspace(false);
+        resizeOrigin.current = null;
+      }
+    };
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isResizingWorkspace]);
+
+  // Keep the workspace within the available viewport after a resize.
+  useEffect(() => {
+    const handleWindowResize = () => {
+      setWorkspaceWidth((width) => clampWorkspaceWidth(width));
+    };
+
+    window.addEventListener("resize", handleWindowResize);
+
+    return () => window.removeEventListener("resize", handleWindowResize);
+  }, []);
+
+  function handleWorkspaceResizeStart(event) {
+    if (!isDesktop || !workspaceOpen) return;
+
+    event.preventDefault();
+
+    resizeOrigin.current = {
+      pointerX: event.clientX,
+      initialWidth: workspaceWidth,
+    };
+
+    setIsResizingWorkspace(true);
+  }
+
+  function handleWorkspaceResizeKeyDown(event) {
+    if (!isDesktop || !workspaceOpen) return;
+
+    const step = event.shiftKey ? 48 : 16;
+
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      setWorkspaceWidth((width) =>
+        clampWorkspaceWidth(width + step),
+      );
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      setWorkspaceWidth((width) =>
+        clampWorkspaceWidth(width - step),
+      );
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      setWorkspaceWidth(MIN_WORKSPACE_WIDTH);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      setWorkspaceWidth(clampWorkspaceWidth(MAX_WORKSPACE_WIDTH));
+    }
+  }
 
   function handleNavigate(href) {
     if (href === "/" || href === "/onboarding") {
@@ -243,7 +368,6 @@ export default function App() {
         previous.filter((item) => item.id !== conversation.id),
       );
 
-      // If the active conversation is deleted, start a clean chat.
       if (activeConversationId === conversation.id) {
         startNewConversation();
         setActiveConversationIdState(null);
@@ -362,7 +486,6 @@ export default function App() {
 
       setActiveConversationIdState(getActiveConversationId());
 
-      // Refresh saved conversations after sending a message.
       void refreshConversations();
     } catch (err) {
       addMessage(
@@ -463,6 +586,7 @@ export default function App() {
         ctaHref={isChat ? "/onboarding" : "/dashboard"}
         onNavigate={handleNavigate}
       />
+
       {isChat && (
         <div className="relative z-20 flex items-center justify-end gap-2 border-b border-white/[0.06] bg-zinc-950/60 px-4 py-2 sm:px-6">
           <Button
@@ -610,8 +734,37 @@ export default function App() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.15 }}
-                  className="sticky top-16 flex h-[calc(100vh-4rem)] w-[min(420px,40vw)] shrink-0 flex-col self-start border-l border-white/10 bg-zinc-950/80"
+                  style={{ width: `${workspaceWidth}px` }}
+                  className="sticky top-16 flex h-[calc(100vh-4rem)] shrink-0 flex-col self-start border-l border-white/10 bg-zinc-950/80"
                 >
+                  {/* Draggable divider */}
+                  <div
+                    role="separator"
+                    aria-label="Resize chat and workspace panels"
+                    aria-orientation="vertical"
+                    aria-valuemin={MIN_WORKSPACE_WIDTH}
+                    aria-valuemax={clampWorkspaceWidth(MAX_WORKSPACE_WIDTH)}
+                    aria-valuenow={workspaceWidth}
+                    aria-valuetext={`Workspace width ${workspaceWidth} pixels`}
+                    tabIndex={0}
+                    onPointerDown={handleWorkspaceResizeStart}
+                    onKeyDown={handleWorkspaceResizeKeyDown}
+                    title="Drag to resize. Use left and right arrow keys to adjust."
+                    className={`group absolute -left-2 top-0 z-30 flex h-full w-4 touch-none cursor-col-resize items-center justify-center outline-none ${
+                      isResizingWorkspace ? "bg-indigo-400/10" : ""
+                    }`}
+                  >
+                    <span
+                      className={`flex h-16 w-4 items-center justify-center rounded-full border border-white/10 bg-zinc-900/90 text-zinc-500 shadow-lg transition-all group-hover:border-indigo-300/40 group-hover:text-indigo-200 group-focus-visible:border-indigo-300 group-focus-visible:text-indigo-200 ${
+                        isResizingWorkspace
+                          ? "border-indigo-300/50 text-indigo-200"
+                          : ""
+                      }`}
+                    >
+                      <GripVertical size={14} />
+                    </span>
+                  </div>
+
                   <div className="border-b border-white/10 px-5 py-4">
                     <p className="text-sm font-medium text-zinc-100">
                       Workspace
@@ -710,7 +863,6 @@ export default function App() {
 
               {conversations.map((conversation) => {
                 const isDeleting = deletingConversationId === conversation.id;
-
                 const isActive = activeConversationId === conversation.id;
 
                 return (
