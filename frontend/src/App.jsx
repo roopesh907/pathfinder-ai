@@ -1,4 +1,4 @@
-import { memo, useEffect, useState, useCallback,} from "react";
+import { memo, useEffect, useState,} from "react";
 import {
   AnimatePresence,
   LazyMotion,
@@ -310,9 +310,9 @@ const CareerCard = memo(function CareerCard({ career, onSelect }) {
 function RoadmapSkeleton() {
   return (
     <div className="space-y-4">
-      <Skeleton className="h-24 w-full rounded-xl bg-white/[0.06]" />
-      <Skeleton className="h-14 w-full rounded-xl bg-white/[0.06]" />
-      <Skeleton className="h-14 w-full rounded-xl bg-white/[0.06]" />
+      <Skeleton className="h-24 w-full rounded-xl bg-white/6" />
+      <Skeleton className="h-14 w-full rounded-xl bg-white/6" />
+      <Skeleton className="h-14 w-full rounded-xl bg-white/6" />
       <p className="text-center text-xs text-zinc-500">
         Building your learning plan
       </p>

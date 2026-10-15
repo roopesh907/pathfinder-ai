@@ -1,24 +1,26 @@
+
 import os
+from uuid import UUID, uuid4
 
 import httpx
+import psycopg
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, ValidationError
+
+import database
 
 load_dotenv()
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 
-
 app = FastAPI(
     title="PathFinder AI API",
     description="Career discovery, skill-gap analysis, and roadmap planning",
-    version="0.1.0",
+    version="0.2.0",
 )
-
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -100,7 +102,13 @@ CAREERS = [
             "differential equations",
             "scientific modeling",
         ],
-        "interests": ["physics", "math", "programming", "research", "simulation"],
+        "interests": [
+            "physics",
+            "math",
+            "programming",
+            "research",
+            "simulation",
+        ],
         "projects": [
             "Simulate a physical system numerically.",
             "Visualize a scientific model interactively.",
@@ -124,7 +132,13 @@ CAREERS = [
             "visual design",
             "communication",
         ],
-        "interests": ["design", "psychology", "creativity", "people", "technology"],
+        "interests": [
+            "design",
+            "psychology",
+            "creativity",
+            "people",
+            "technology",
+        ],
         "projects": [
             "Interview users about a real problem.",
             "Prototype and test a redesigned experience.",
@@ -148,7 +162,13 @@ CAREERS = [
             "prioritization",
             "data analysis",
         ],
-        "interests": ["business", "technology", "people", "strategy", "problem solving"],
+        "interests": [
+            "business",
+            "technology",
+            "people",
+            "strategy",
+            "problem solving",
+        ],
         "projects": [
             "Write a product brief for a real user problem.",
             "Prioritize features using user feedback.",
@@ -187,6 +207,8 @@ class RoadmapRequest(StudentProfile):
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=2000)
     profile: dict = Field(default_factory=dict)
+    session_id: UUID | None = None
+    conversation_id: UUID | None = None
 
 
 # --------------------------------------------------
@@ -222,7 +244,6 @@ def score_career(profile: StudentProfile, career: dict) -> dict:
         else 0
     )
 
-    # A transparent heuristic, not a probability of getting hired.
     match_score = round(
         skill_coverage * 0.65 + interest_fit * 0.35
     )
@@ -241,20 +262,25 @@ def score_career(profile: StudentProfile, career: dict) -> dict:
     }
 
 
-def build_system_prompt(profile: StudentProfile, matches: list[dict]) -> str:
+def build_system_prompt(
+    profile: StudentProfile,
+    matches: list[dict],
+) -> str:
     match_lines = "\n".join(
         f"- {m['title']} (match {m['match_score']}%): "
         f"has [{', '.join(m['matched_skills']) or 'none yet'}], "
         f"missing [{', '.join(m['missing_skills'])}]"
         for m in matches
     )
+
     return (
         "You are PathFinder, a career-exploration assistant for students. "
         "Give practical, honest, encouraging advice in plain language. "
         "Keep answers short (under 150 words unless asked for more). "
         "Reply briefly to greetings and ask what they want to explore. "
-        "Use plain text. You may use **bold** for key terms, but no italics, headings or tables. "
-        "Do not use emoji. Do not claim match scores predict hiring outcomes; "
+        "Use plain text. You may use **bold** for key terms, but no italics, "
+        "headings or tables. Do not use emoji. "
+        "Do not claim match scores predict hiring outcomes; "
         "they only measure alignment with a small curated catalog.\n\n"
         "Student profile:\n"
         f"- Education: {profile.education_level}\n"
@@ -270,8 +296,32 @@ def build_system_prompt(profile: StudentProfile, matches: list[dict]) -> str:
     )
 
 
+def get_profile(profile_data: dict) -> StudentProfile:
+    try:
+        return StudentProfile(**profile_data)
+    except (ValidationError, TypeError):
+        return StudentProfile()
+
+
+def database_error() -> HTTPException:
+    return HTTPException(
+        status_code=503,
+        detail=(
+            "Chat history is temporarily unavailable. "
+            "Please try again shortly."
+        ),
+    )
+
+
+def make_conversation_title(message: str) -> str:
+    title = " ".join(message.split()).strip()
+    if len(title) > 80:
+        title = title[:77].rstrip() + "..."
+    return title or "New conversation"
+
+
 # --------------------------------------------------
-# Routes
+# Basic routes
 # --------------------------------------------------
 
 @app.get("/")
@@ -297,6 +347,10 @@ async def get_careers():
         "careers": CAREERS,
     }
 
+
+# --------------------------------------------------
+# Career matching
+# --------------------------------------------------
 
 @app.post("/api/match")
 async def match_careers(profile: StudentProfile):
@@ -325,11 +379,16 @@ async def match_careers(profile: StudentProfile):
     }
 
 
+# --------------------------------------------------
+# Roadmap generation
+# --------------------------------------------------
+
 @app.post("/api/roadmap")
 async def create_roadmap(request: RoadmapRequest):
     career = next(
         (
-            item for item in CAREERS
+            item
+            for item in CAREERS
             if item["id"] == request.career_id
         ),
         None,
@@ -344,7 +403,6 @@ async def create_roadmap(request: RoadmapRequest):
     match = score_career(request, career)
     missing = match["missing_skills"]
 
-    # Divide the missing skills into three learning phases.
     phases = [
         {
             "phase": 1,
@@ -358,7 +416,9 @@ async def create_roadmap(request: RoadmapRequest):
             "title": "Develop practical skills",
             "duration_weeks": 3,
             "skills": missing[2:4],
-            "milestone": "Apply the skills in a guided mini-project.",
+            "milestone": (
+                "Apply the skills in a guided mini-project."
+            ),
         },
         {
             "phase": 3,
@@ -369,7 +429,6 @@ async def create_roadmap(request: RoadmapRequest):
         },
     ]
 
-    # A simple budget-aware resource suggestion.
     if request.monthly_budget == 0:
         resource_guidance = (
             "Use free documentation, open courses, and free tools."
@@ -380,13 +439,14 @@ async def create_roadmap(request: RoadmapRequest):
             "for resources that address a specific learning gap."
         )
 
-    # Adapt workload to the student's available weekly time.
     if request.weekly_hours <= 3:
         pacing = "Light: work on one small task at a time."
     elif request.weekly_hours <= 7:
         pacing = "Steady: split time between learning and practice."
     else:
-        pacing = "Intensive: combine structured learning with project work."
+        pacing = (
+            "Intensive: combine structured learning with project work."
+        )
 
     return {
         "career": {
@@ -411,31 +471,119 @@ async def create_roadmap(request: RoadmapRequest):
     }
 
 
+# --------------------------------------------------
+# Persistent conversation history
+# --------------------------------------------------
+
+@app.get("/api/conversations")
+async def list_conversations(
+    session_id: UUID = Query(...),
+):
+    """List conversations belonging to a browser session."""
+    try:
+        conversations = await database.get_conversations(session_id)
+        return {
+            "conversations": conversations,
+        }
+    except (psycopg.Error, RuntimeError):
+        raise database_error()
+
+
+@app.get("/api/conversations/{conversation_id}/messages")
+async def list_conversation_messages(
+    conversation_id: UUID,
+    session_id: UUID = Query(...),
+):
+    """Load messages if the conversation belongs to this session."""
+    try:
+        belongs = await database.conversation_belongs_to_session(
+            conversation_id,
+            session_id,
+        )
+
+        if not belongs:
+            raise HTTPException(
+                status_code=404,
+                detail="Conversation not found.",
+            )
+
+        messages = await database.get_conversation_messages(
+            conversation_id
+        )
+
+        return {
+            "conversation_id": conversation_id,
+            "messages": messages,
+        }
+    except HTTPException:
+        raise
+    except (psycopg.Error, RuntimeError):
+        raise database_error()
+
+
+# --------------------------------------------------
+# Groq chat + persistent history
+# --------------------------------------------------
+
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
     api_key = os.getenv("GROQ_API_KEY")
+
     if not api_key:
         raise HTTPException(
             status_code=503,
-            detail="Chat is not configured. Set GROQ_API_KEY in the backend .env file.",
+            detail="Chat is not configured. Set GROQ_API_KEY in the backend environment.",
         )
 
-    try:
-        profile = StudentProfile(**request.profile)
-    except (ValidationError, TypeError):
-        profile = StudentProfile()
+    # Reuse the supplied session, or create one for a new browser.
+    session_id = request.session_id or uuid4()
+    conversation_id = request.conversation_id
+
+    # Reject conversation IDs that do not belong to this session.
+    if conversation_id is not None:
+        try:
+            belongs = await database.conversation_belongs_to_session(
+                conversation_id,
+                session_id,
+            )
+        except (psycopg.Error, RuntimeError):
+            raise database_error()
+
+        if not belongs:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    "Conversation not found for this session. "
+                    "Start a new conversation."
+                ),
+            )
+
+    profile = get_profile(request.profile)
 
     matches = sorted(
-        (score_career(profile, career) for career in CAREERS),
-        key=lambda m: (m["match_score"], m["interest_fit"], m["skill_coverage"]),
+        (
+            score_career(profile, career)
+            for career in CAREERS
+        ),
+        key=lambda item: (
+            item["match_score"],
+            item["interest_fit"],
+            item["skill_coverage"],
+        ),
         reverse=True,
     )[:3]
 
     payload = {
         "model": GROQ_MODEL,
         "messages": [
-            {"role": "system", "content": build_system_prompt(profile, matches)},
-            {"role": "user", "content": request.message},
+            {
+                "role": "system",
+                "content": build_system_prompt(profile, matches),
+            },
+            {
+                "role": "user",
+                "content": request.message,
+            },
         ],
         "temperature": 0.6,
         "max_tokens": 500,
@@ -445,11 +593,20 @@ async def chat(request: ChatRequest):
         async with httpx.AsyncClient(timeout=30) as client:
             response = await client.post(
                 GROQ_URL,
-                headers={"Authorization": f"Bearer {api_key}"},
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                },
                 json=payload,
             )
+
         response.raise_for_status()
-        reply = response.json()["choices"][0]["message"]["content"].strip()
+        reply = (
+            response.json()["choices"][0]["message"]["content"].strip()
+        )
+
+        if not reply:
+            raise ValueError("The AI returned an empty reply.")
+
     except httpx.TimeoutException:
         raise HTTPException(
             status_code=504,
@@ -458,7 +615,10 @@ async def chat(request: ChatRequest):
     except httpx.HTTPStatusError as exc:
         raise HTTPException(
             status_code=502,
-            detail=f"The AI service returned an error ({exc.response.status_code}).",
+            detail=(
+                "The AI service returned an error "
+                f"({exc.response.status_code})."
+            ),
         )
     except (httpx.HTTPError, KeyError, IndexError, ValueError):
         raise HTTPException(
@@ -466,4 +626,25 @@ async def chat(request: ChatRequest):
             detail="Could not get a reply from the AI service.",
         )
 
-    return {"reply": reply}
+    # Create the conversation on its first successful chat message.
+    try:
+        if conversation_id is None:
+            conversation_id = await database.create_conversation(
+                session_id=session_id,
+                title=make_conversation_title(request.message),
+            )
+
+        await database.save_messages(
+            conversation_id=conversation_id,
+            user_message=request.message,
+            assistant_reply=reply,
+        )
+
+    except (psycopg.Error, RuntimeError):
+        raise database_error()
+
+    return {
+        "reply": reply,
+        "session_id": session_id,
+        "conversation_id": conversation_id,
+    }
