@@ -1,4 +1,4 @@
-
+import math
 import logging
 import os
 import re
@@ -679,18 +679,379 @@ async def match_careers(profile: StudentProfile):
     }
 
 
+
 # --------------------------------------------------
-# Roadmap generation
+# Adaptive roadmap generation
 # --------------------------------------------------
+
+
+# --------------------------------------------------
+# Adaptive roadmap generation
+# --------------------------------------------------
+
+ROADMAP_TEMPLATES = {
+    "ai-ml-engineer": [
+        {
+            "title": "Strengthen the foundations",
+            "skills": ["python", "linear algebra", "statistics"],
+            "hours": 18,
+            "milestone": "Complete exercises using Python, vectors, and basic statistics.",
+            "project": "Analyze a small dataset with Python and NumPy.",
+        },
+        {
+            "title": "Learn machine learning",
+            "skills": ["machine learning", "statistics"],
+            "hours": 28,
+            "milestone": "Train and evaluate a baseline machine-learning model.",
+            "project": "Build a predictor and compare multiple evaluation metrics.",
+        },
+        {
+            "title": "Build a practical ML project",
+            "skills": ["machine learning", "python"],
+            "hours": 30,
+            "milestone": "Deliver a reproducible project with documented results.",
+            "project": "Build and deploy a machine-learning prediction app.",
+        },
+        {
+            "title": "Prepare a professional portfolio",
+            "skills": ["software engineering", "machine learning"],
+            "hours": 20,
+            "milestone": "Publish a polished repository with setup instructions and a clear README.",
+            "project": "Improve the project with tests, error handling, and a demo.",
+        },
+    ],
+    "data-analyst": [
+        {
+            "title": "Learn data fundamentals",
+            "skills": ["sql", "statistics"],
+            "hours": 20,
+            "milestone": "Query a dataset and explain its basic statistical properties.",
+            "project": "Explore a public dataset and document initial findings.",
+        },
+        {
+            "title": "Clean and analyze data",
+            "skills": ["python", "statistics"],
+            "hours": 24,
+            "milestone": "Clean missing or inconsistent data and answer analytical questions.",
+            "project": "Create a reproducible exploratory data analysis.",
+        },
+        {
+            "title": "Communicate insights visually",
+            "skills": ["data visualization", "communication"],
+            "hours": 24,
+            "milestone": "Present evidence-backed findings with clear visualizations.",
+            "project": "Build an interactive analytics dashboard.",
+        },
+        {
+            "title": "Create an end-to-end case study",
+            "skills": ["sql", "data visualization", "communication"],
+            "hours": 18,
+            "milestone": "Publish a case study explaining the problem, method, and recommendations.",
+            "project": "Complete an end-to-end analysis for a real-world question.",
+        },
+    ],
+    "scientific-computing": [
+        {
+            "title": "Build scientific Python foundations",
+            "skills": ["python", "linear algebra"],
+            "hours": 20,
+            "milestone": "Implement numerical calculations and visualize their results.",
+            "project": "Explore a mathematical system using NumPy and Matplotlib.",
+        },
+        {
+            "title": "Study numerical methods",
+            "skills": ["numerical methods", "linear algebra"],
+            "hours": 26,
+            "milestone": "Compare numerical solutions with known analytical results.",
+            "project": "Implement and test a numerical solver.",
+        },
+        {
+            "title": "Model a scientific system",
+            "skills": ["differential equations", "scientific modeling"],
+            "hours": 30,
+            "milestone": "Build a simulation and explain its assumptions and limitations.",
+            "project": "Simulate a physical or engineering system.",
+        },
+        {
+            "title": "Validate and present the simulation",
+            "skills": ["scientific modeling", "numerical methods"],
+            "hours": 20,
+            "milestone": "Document convergence, accuracy, and numerical limitations.",
+            "project": "Create an interactive visualization of the simulation.",
+        },
+    ],
+    "ux-designer": [
+        {
+            "title": "Understand users and problems",
+            "skills": ["user research", "communication"],
+            "hours": 16,
+            "milestone": "Identify a user problem supported by research.",
+            "project": "Conduct interviews or analyze user feedback.",
+        },
+        {
+            "title": "Design the experience",
+            "skills": ["wireframing", "visual design"],
+            "hours": 22,
+            "milestone": "Create user flows and wireframes for the main experience.",
+            "project": "Design a user journey and low-fidelity wireframes.",
+        },
+        {
+            "title": "Build and test a prototype",
+            "skills": ["prototyping", "visual design"],
+            "hours": 26,
+            "milestone": "Test a prototype and identify usability issues.",
+            "project": "Create an interactive prototype and run usability tests.",
+        },
+        {
+            "title": "Present a UX case study",
+            "skills": ["communication", "user research"],
+            "hours": 18,
+            "milestone": "Explain the problem, design decisions, feedback, and iterations.",
+            "project": "Publish a portfolio case study.",
+        },
+    ],
+    "product-manager": [
+        {
+            "title": "Discover user problems",
+            "skills": ["user research", "communication"],
+            "hours": 16,
+            "milestone": "Define a user problem and support it with evidence.",
+            "project": "Write a concise problem-discovery brief.",
+        },
+        {
+            "title": "Define the product",
+            "skills": ["problem solving", "prioritization"],
+            "hours": 22,
+            "milestone": "Write requirements and prioritize a focused set of features.",
+            "project": "Create a product requirements document.",
+        },
+        {
+            "title": "Use data to make decisions",
+            "skills": ["data analysis", "prioritization"],
+            "hours": 24,
+            "milestone": "Define success metrics and explain prioritization decisions.",
+            "project": "Create a metrics and experiment proposal.",
+        },
+        {
+            "title": "Present a product case study",
+            "skills": ["communication", "user research"],
+            "hours": 18,
+            "milestone": "Present a coherent product proposal backed by user needs and metrics.",
+            "project": "Build and present a product case study.",
+        },
+    ],
+}
+
+
+def build_adaptive_phases(request: RoadmapRequest, career: dict) -> dict:
+    """Generate a roadmap adapted to skills, goals, education, time, and budget."""
+
+    templates = ROADMAP_TEMPLATES.get(career["id"])
+
+    if not templates:
+        templates = [
+            {
+                "title": f"Build foundations in {career['title']}",
+                "skills": career["skills"][:2],
+                "hours": 20,
+                "milestone": "Complete foundational exercises.",
+                "project": career["projects"][0],
+            },
+            {
+                "title": f"Practice {career['title']} skills",
+                "skills": career["skills"][2:4],
+                "hours": 28,
+                "milestone": "Apply the skills to a guided project.",
+                "project": career["projects"][-1],
+            },
+        ]
+
+    student_skills = normalize(request.skills)
+    required_skills = normalize(career["skills"])
+    missing_skills = required_skills - student_skills
+
+    goals = normalize_goal_text(request.goals)
+    education = request.education_level.lower()
+
+    # More specific goal categories must be checked before broad categories.
+    if any(word in goals for word in ("interview", "resume", "cv")):
+        goal_focus = "interviews"
+    elif any(word in goals for word in ("internship", "job", "employment", "career")):
+        goal_focus = "career"
+    elif any(word in goals for word in ("portfolio", "project", "build", "deploy")):
+        goal_focus = "projects"
+    elif any(word in goals for word in ("fundamentals", "basics", "learn", "understand")):
+        goal_focus = "foundations"
+    else:
+        goal_focus = "balanced"
+
+    is_beginner = not student_skills or (
+        "self-taught" in education and len(student_skills) < 2
+    )
+
+    selected_templates = []
+
+    for template in templates:
+        relevant_skills = [
+            skill
+            for skill in template["skills"]
+            if canonicalize(skill) in missing_skills
+        ]
+
+        title = template["title"].lower()
+        is_project_phase = any(
+            word in title
+            for word in ("project", "portfolio", "case study", "present", "prototype")
+        )
+
+        if relevant_skills or is_project_phase:
+            selected_templates.append((template, relevant_skills))
+
+    if not selected_templates:
+        selected_templates = [(templates[-1], [])]
+
+    adjusted = []
+
+    for template, relevant_skills in selected_templates:
+        hours = template["hours"]
+        title = template["title"].lower()
+
+        if is_beginner and any(
+            word in title for word in ("foundation", "fundamental")
+        ):
+            hours = round(hours * 1.25)
+
+        if (
+            ("postgraduate" in education or "working professional" in education)
+            and relevant_skills
+            and all(
+                canonicalize(skill) in student_skills
+                for skill in template["skills"]
+            )
+        ):
+            hours = round(hours * 0.85)
+
+        adjusted.append({
+            **template,
+            "skills": relevant_skills or template["skills"],
+            "estimated_hours": max(4, hours),
+        })
+
+    # Adapt time allocation to the student's goal.
+    for phase in adjusted:
+        title = phase["title"].lower()
+
+        if goal_focus == "projects" and any(
+            word in title for word in ("project", "portfolio", "case study", "prototype")
+        ):
+            phase["estimated_hours"] = round(phase["estimated_hours"] * 1.15)
+
+        elif goal_focus == "foundations" and any(
+            word in title for word in ("foundation", "learn")
+        ):
+            phase["estimated_hours"] = round(phase["estimated_hours"] * 1.15)
+
+        elif goal_focus in ("career", "interviews") and any(
+            word in title for word in ("portfolio", "case study", "present")
+        ):
+            phase["estimated_hours"] = round(phase["estimated_hours"] * 1.2)
+
+    total_hours = sum(phase["estimated_hours"] for phase in adjusted)
+
+    # Each phase receives at least one week. The resulting duration can
+    # therefore never be shorter than the number of selected phases.
+    total_weeks = max(
+        len(adjusted),
+        math.ceil(total_hours / request.weekly_hours),
+    )
+
+    # Proportionally allocate the total weeks without assigning fewer
+    # than one week to any phase.
+    remaining_weeks = total_weeks
+    phases = []
+
+    for index, phase in enumerate(adjusted):
+        phases_left = len(adjusted) - index - 1
+
+        if phases_left == 0:
+            duration_weeks = remaining_weeks
+        else:
+            proportional_weeks = round(
+                total_weeks * phase["estimated_hours"] / total_hours
+            )
+
+            duration_weeks = max(
+                1,
+                min(proportional_weeks, remaining_weeks - phases_left),
+            )
+
+        remaining_weeks -= duration_weeks
+
+        phases.append({
+            "phase": index + 1,
+            "title": phase["title"],
+            "duration_weeks": duration_weeks,
+            "estimated_hours": phase["estimated_hours"],
+            "estimated_minutes": phase["estimated_hours"] * 60,
+            "weekly_hours": request.weekly_hours,
+            "skills": phase["skills"],
+            "milestone": phase["milestone"],
+            "project": phase["project"],
+        })
+
+    if request.weekly_hours <= 3:
+        pacing = "Light: focus on a few small tasks each week."
+    elif request.weekly_hours <= 7:
+        pacing = "Steady: balance learning with regular practice."
+    elif request.weekly_hours <= 15:
+        pacing = "Focused: combine structured learning and project work."
+    else:
+        pacing = "Intensive: use a structured schedule and avoid burnout."
+
+    if goal_focus == "career":
+        focus_note = (
+            "Career preparation: emphasize demonstrable work and portfolio evidence."
+        )
+    elif goal_focus == "projects":
+        focus_note = (
+            "Project-focused: prioritize building, testing, and presenting practical work."
+        )
+    elif goal_focus == "foundations":
+        focus_note = (
+            "Foundations-focused: spend more time understanding core concepts."
+        )
+    elif goal_focus == "interviews":
+        focus_note = (
+            "Interview-focused: practice explaining decisions and trade-offs."
+        )
+    else:
+        focus_note = (
+            "Balanced plan: combine fundamentals, practice, and a demonstrable project."
+        )
+
+    resource_guidance = (
+        "Use free documentation, open courses, and free tools."
+        if request.monthly_budget == 0
+        else
+        "Start with free resources; use your budget only for resources "
+        "that address a specific learning gap."
+    )
+
+    return {
+        "phases": phases,
+        "total_hours": total_hours,
+        "total_weeks": sum(phase["duration_weeks"] for phase in phases),
+        "pacing": pacing,
+        "resource_guidance": resource_guidance,
+        "goal_focus": goal_focus,
+        "focus_note": focus_note,
+    }
+
 
 @app.post("/api/roadmap")
 async def create_roadmap(request: RoadmapRequest):
     career = next(
-        (
-            item
-            for item in CAREERS
-            if item["id"] == request.career_id
-        ),
+        (item for item in CAREERS if item["id"] == request.career_id),
         None,
     )
 
@@ -701,50 +1062,7 @@ async def create_roadmap(request: RoadmapRequest):
         )
 
     match = score_career(request, career)
-    missing = match["missing_skills"]
-
-    phases = [
-        {
-            "phase": 1,
-            "title": "Build the foundations",
-            "duration_weeks": 2,
-            "skills": missing[:2],
-            "milestone": "Complete foundational exercises.",
-        },
-        {
-            "phase": 2,
-            "title": "Develop practical skills",
-            "duration_weeks": 3,
-            "skills": missing[2:4],
-            "milestone": "Apply the skills in a guided mini-project.",
-        },
-        {
-            "phase": 3,
-            "title": "Prove your skills",
-            "duration_weeks": 3,
-            "skills": missing[4:],
-            "milestone": career["projects"][0],
-        },
-    ]
-
-    if request.monthly_budget == 0:
-        resource_guidance = (
-            "Use free documentation, open courses, and free tools."
-        )
-    else:
-        resource_guidance = (
-            "Start with free resources; use the available budget only "
-            "for resources that address a specific learning gap."
-        )
-
-    if request.weekly_hours <= 3:
-        pacing = "Light: work on one small task at a time."
-    elif request.weekly_hours <= 7:
-        pacing = "Steady: split time between learning and practice."
-    else:
-        pacing = (
-            "Intensive: combine structured learning with project work."
-        )
+    plan = build_adaptive_phases(request, career)
 
     return {
         "career": {
@@ -754,19 +1072,21 @@ async def create_roadmap(request: RoadmapRequest):
         "match_score": match["match_score"],
         "skill_coverage": match["skill_coverage"],
         "current_skills": match["matched_skills"],
-        "skills_to_develop": missing,
+        "skills_to_develop": match["missing_skills"],
         "weekly_hours": request.weekly_hours,
-        "estimated_duration_weeks": sum(
-            phase["duration_weeks"] for phase in phases
-        ),
-        "pacing": pacing,
-        "resource_guidance": resource_guidance,
-        "phases": phases,
+        "estimated_total_hours": plan["total_hours"],
+        "estimated_duration_weeks": plan["total_weeks"],
+        "pacing": plan["pacing"],
+        "goal_focus": plan["goal_focus"],
+        "focus_note": plan["focus_note"],
+        "resource_guidance": plan["resource_guidance"],
+        "phases": plan["phases"],
         "note": (
-            "This is a starter roadmap. Timelines are illustrative and "
-            "should be adjusted to the learner's progress."
+            "Estimates are planning guides, not guarantees. Adjust the plan "
+            "based on your progress and the difficulty of each task."
         ),
     }
+
 
 
 # --------------------------------------------------
