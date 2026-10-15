@@ -1,6 +1,6 @@
-
 import logging
 import os
+import re
 from uuid import UUID, uuid4
 
 import httpx
@@ -21,7 +21,7 @@ GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 app = FastAPI(
     title="PathFinder AI API",
     description="Career discovery, skill-gap analysis, and roadmap planning",
-    version="0.3.0",
+    version="0.4.0",
 )
 
 app.add_middleware(
@@ -55,7 +55,12 @@ CAREERS = [
             "machine learning",
             "software engineering",
         ],
-        "interests": ["artificial intelligence", "math", "programming", "data"],
+        "interests": [
+            "artificial intelligence",
+            "math",
+            "programming",
+            "data",
+        ],
         "projects": [
             "Build and deploy a machine learning predictor.",
             "Create a model evaluation dashboard.",
@@ -79,7 +84,12 @@ CAREERS = [
             "data visualization",
             "communication",
         ],
-        "interests": ["data", "business", "math", "problem solving"],
+        "interests": [
+            "data",
+            "business",
+            "math",
+            "problem solving",
+        ],
         "projects": [
             "Analyze a public dataset.",
             "Build an interactive analytics dashboard.",
@@ -184,9 +194,95 @@ CAREERS = [
 ]
 
 # --------------------------------------------------
-# Request models
+# Goal keywords
 # --------------------------------------------------
 
+# These are transparent keyword-based indicators, not semantic AI analysis.
+# Keep these aligned with the career catalog as it evolves.
+
+CAREER_GOAL_KEYWORDS = {
+    "ai-ml-engineer": [
+        "artificial intelligence",
+        "machine learning",
+        "deep learning",
+        "neural network",
+        "predictive model",
+        "train a model",
+        "data science",
+        "build an ai",
+    ],
+    "data-analyst": [
+        "data analysis",
+        "analyze data",
+        "data visualization",
+        "dashboard",
+        "sql",
+        "business intelligence",
+        "business insights",
+        "statistics",
+    ],
+    "scientific-computing": [
+        "physics simulation",
+        "scientific simulation",
+        "numerical methods",
+        "differential equations",
+        "scientific computing",
+        "computational physics",
+        "research simulation",
+        "mathematical modeling",
+    ],
+    "ux-designer": [
+        "user experience",
+        "ux design",
+        "user interface",
+        "ui design",
+        "user research",
+        "wireframe",
+        "prototype",
+        "usability",
+    ],
+    "product-manager": [
+        "product management",
+        "product manager",
+        "product strategy",
+        "product roadmap",
+        "user needs",
+        "feature prioritization",
+        "product requirements",
+        "business strategy",
+    ],
+}
+
+# Common aliases are normalized before comparing profile data with the catalog.
+ALIASES = {
+    "ml": "machine learning",
+    "machinelearning": "machine learning",
+    "ai": "artificial intelligence",
+    "artificialintelligence": "artificial intelligence",
+    "js": "javascript",
+    "py": "python",
+    "linearalgebra": "linear algebra",
+    "datascience": "data science",
+    "dataanalysis": "data analysis",
+    "datavisualization": "data visualization",
+    "differentialequations": "differential equations",
+    "numericalmethods": "numerical methods",
+    "scientificcomputing": "scientific computing",
+    "scientificmodeling": "scientific modeling",
+    "problemsolving": "problem solving",
+    "problem-solving": "problem solving",
+    "ux": "user experience",
+    "ui": "user interface",
+    "userinterface": "user interface",
+    "userexperience": "user experience",
+    "deep learning": "deep learning",
+    "neural networks": "neural network",
+}
+
+
+# --------------------------------------------------
+# Request models
+# --------------------------------------------------
 
 class StudentProfile(BaseModel):
     education_level: str = Field(
@@ -216,28 +312,67 @@ class ChatRequest(BaseModel):
 # Matching helpers
 # --------------------------------------------------
 
+def clean_text(value: str) -> str:
+    """Normalize punctuation, whitespace, and case."""
+    value = str(value).strip().lower()
+    value = re.sub(r"[_/]+", " ", value)
+    value = re.sub(r"[^a-z0-9+#.\s-]", " ", value)
+    value = re.sub(r"\s+", " ", value)
+    return value.strip()
+
+
+def canonicalize(value: str) -> str:
+    """Convert common aliases into catalog-compatible terms."""
+    cleaned = clean_text(value)
+    compact = re.sub(r"[\s-]+", "", cleaned)
+
+    if cleaned in ALIASES:
+        return ALIASES[cleaned]
+
+    if compact in ALIASES:
+        return ALIASES[compact]
+
+    return cleaned.replace("-", " ")
+
 
 def normalize(items: list[str]) -> set[str]:
-    return {
-        item.strip().lower()
-        for item in items
-        if item.strip()
-    }
+    """Return canonical, non-empty profile terms."""
+    normalized = set()
+
+    for item in items:
+        if not isinstance(item, str):
+            continue
+
+        term = canonicalize(item)
+
+        if term:
+            normalized.add(term)
+
+    return normalized
+
+
+def normalize_goal_text(value: str) -> str:
+    """Normalize a free-text goal while preserving searchable phrases."""
+    value = clean_text(value)
+    value = value.replace("-", " ")
+    return re.sub(r"\s+", " ", value).strip()
 
 
 def score_career(profile: StudentProfile, career: dict) -> dict:
     student_skills = normalize(profile.skills)
     student_interests = normalize(profile.interests)
 
-    required_skills = set(career["skills"])
-    career_interests = set(career["interests"])
+    required_skills = normalize(career["skills"])
+    career_interests = normalize(career["interests"])
 
     matched_skills = sorted(student_skills & required_skills)
     missing_skills = sorted(required_skills - student_skills)
     matched_interests = sorted(student_interests & career_interests)
 
-    skill_coverage = round(
-        len(matched_skills) / len(required_skills) * 100
+    skill_coverage = (
+        round(len(matched_skills) / len(required_skills) * 100)
+        if required_skills
+        else 0
     )
 
     interest_fit = (
@@ -246,22 +381,86 @@ def score_career(profile: StudentProfile, career: dict) -> dict:
         else 0
     )
 
-    match_score = round(
-        skill_coverage * 0.65 + interest_fit * 0.35
-    )
+    goal_text = normalize_goal_text(profile.goals)
+    goal_keywords = CAREER_GOAL_KEYWORDS.get(career["id"], [])
+
+    matched_goal_keywords = [
+        keyword
+        for keyword in goal_keywords
+        if normalize_goal_text(keyword) in goal_text
+    ]
+
+    # An optional goal should not penalize a student who hasn't written one.
+    if goal_text and goal_keywords:
+        goal_alignment = round(
+            len(matched_goal_keywords) / len(goal_keywords) * 100
+        )
+
+        match_score = round(
+            skill_coverage * 0.55
+            + interest_fit * 0.30
+            + goal_alignment * 0.15
+        )
+
+        score_breakdown = {
+            "skills_weight": 55,
+            "interests_weight": 30,
+            "goals_weight": 15,
+            "skills_contribution": round(skill_coverage * 0.55, 1),
+            "interests_contribution": round(interest_fit * 0.30, 1),
+            "goals_contribution": round(goal_alignment * 0.15, 1),
+        }
+    else:
+        goal_alignment = None
+
+        match_score = round(
+            skill_coverage * 0.65
+            + interest_fit * 0.35
+        )
+
+        score_breakdown = {
+            "skills_weight": 65,
+            "interests_weight": 35,
+            "goals_weight": 0,
+            "skills_contribution": round(skill_coverage * 0.65, 1),
+            "interests_contribution": round(interest_fit * 0.35, 1),
+            "goals_contribution": 0,
+        }
 
     return {
         "career_id": career["id"],
         "title": career["title"],
         "field": career["field"],
         "description": career["description"],
-        "match_score": match_score,
+        "match_score": max(0, min(100, match_score)),
         "skill_coverage": skill_coverage,
         "interest_fit": interest_fit,
+        "goal_alignment": goal_alignment,
+        "score_breakdown": score_breakdown,
         "matched_skills": matched_skills,
         "missing_skills": missing_skills,
+        "matched_interests": matched_interests,
+        "matched_goal_keywords": matched_goal_keywords,
         "projects": career["projects"],
     }
+
+
+def sort_matches(profile: StudentProfile) -> list[dict]:
+    results = [
+        score_career(profile, career)
+        for career in CAREERS
+    ]
+
+    results.sort(
+        key=lambda item: (
+            item["match_score"],
+            item["interest_fit"],
+            item["skill_coverage"],
+        ),
+        reverse=True,
+    )
+
+    return results
 
 
 def build_system_prompt(
@@ -328,7 +527,6 @@ def make_conversation_title(message: str) -> str:
 # Basic routes
 # --------------------------------------------------
 
-
 @app.get("/")
 async def root():
     return {
@@ -357,27 +555,14 @@ async def get_careers():
 # Career matching
 # --------------------------------------------------
 
-
 @app.post("/api/match")
 async def match_careers(profile: StudentProfile):
-    results = [
-        score_career(profile, career)
-        for career in CAREERS
-    ]
-
-    results.sort(
-        key=lambda item: (
-            item["match_score"],
-            item["interest_fit"],
-            item["skill_coverage"],
-        ),
-        reverse=True,
-    )
+    results = sort_matches(profile)
 
     return {
-        "method": "weighted_skill_and_interest_heuristic",
+        "method": "weighted_profile_alignment_heuristic",
         "disclaimer": (
-            "Scores indicate profile alignment with this curated catalog. "
+            "Scores indicate alignment with this curated catalog. "
             "They are not probabilities of employment or measures of aptitude."
         ),
         "count": len(results),
@@ -388,7 +573,6 @@ async def match_careers(profile: StudentProfile):
 # --------------------------------------------------
 # Roadmap generation
 # --------------------------------------------------
-
 
 @app.post("/api/roadmap")
 async def create_roadmap(request: RoadmapRequest):
@@ -482,7 +666,6 @@ async def create_roadmap(request: RoadmapRequest):
 # Persistent conversation history
 # --------------------------------------------------
 
-
 @app.get("/api/conversations")
 async def list_conversations(
     session_id: UUID = Query(...),
@@ -534,10 +717,7 @@ async def remove_conversation(
     conversation_id: UUID,
     session_id: UUID = Query(...),
 ):
-    """
-    Delete a conversation belonging to the supplied browser session.
-    The database cascades the deletion to its messages.
-    """
+    """Delete a conversation belonging to the supplied browser session."""
     try:
         deleted = await database.delete_conversation(
             conversation_id,
@@ -545,7 +725,6 @@ async def remove_conversation(
         )
 
         if not deleted:
-            # Avoid revealing whether an ID belongs to another session.
             raise HTTPException(
                 status_code=404,
                 detail="Conversation not found.",
@@ -565,7 +744,6 @@ async def remove_conversation(
 # --------------------------------------------------
 # Groq chat + persistent history
 # --------------------------------------------------
-
 
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
@@ -603,19 +781,7 @@ async def chat(request: ChatRequest):
             )
 
     profile = get_profile(request.profile)
-
-    matches = sorted(
-        (
-            score_career(profile, career)
-            for career in CAREERS
-        ),
-        key=lambda item: (
-            item["match_score"],
-            item["interest_fit"],
-            item["skill_coverage"],
-        ),
-        reverse=True,
-    )[:3]
+    matches = sort_matches(profile)[:3]
 
     payload = {
         "model": GROQ_MODEL,
