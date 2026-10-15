@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || "https://pathfinder-ai-omoc.onrender.com";
+const API_BASE = import.meta.env.VITE_API_URL || "https://pathfinder-ai-ashen.vercel.app";
 
 export async function sendChatMessage(message, profile) {
   let response;
