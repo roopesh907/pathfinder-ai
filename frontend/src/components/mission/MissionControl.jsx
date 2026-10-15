@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
@@ -43,11 +42,11 @@ function makeTasks(roadmap) {
       description: firstSkill
         ? `Spend a focused study session building your foundation in ${firstSkill}. Use a free learning resource, then practise what you learned.`
         : `Work through the "${phase.title}" phase and take one practical step toward its milestone.`,
-      rationale: index === 0
-        ? `This is the first phase of your ${roadmap.career?.title || "career"} roadmap. Building this foundation makes the later milestones easier to tackle.`
-        : "This phase follows the earlier foundations in your roadmap. Complete it after the preceding mission so your progress stays in order.",
-      milestone:
-        phase.milestone || "Make measurable progress on this phase.",
+      rationale:
+        index === 0
+          ? `This is the first phase of your ${roadmap.career?.title || "career"} roadmap. Building this foundation makes the later milestones easier to tackle.`
+          : "This phase follows the earlier foundations in your roadmap. Complete it after the preceding mission so your progress stays in order.",
+      milestone: phase.milestone || "Make measurable progress on this phase.",
       estimatedMinutes: Math.max(
         30,
         Math.min(
@@ -85,25 +84,29 @@ const MENTOR_OPTIONS = [
     label: "Explain this concept",
     description: "Break the topic into simpler steps.",
     icon: BookOpen,
-    prompt: "I don't understand the concepts behind this task. Explain them from the beginning using a simple example, then give me one small exercise.",
+    prompt:
+      "I don't understand the concepts behind this task. Explain them from the beginning using a simple example, then give me one small exercise.",
   },
   {
     label: "I'm falling behind",
     description: "Help me make a realistic plan.",
     icon: CalendarClock,
-    prompt: "I'm falling behind on this task. Help me make a realistic, smaller study plan that fits a busy college schedule.",
+    prompt:
+      "I'm falling behind on this task. Help me make a realistic, smaller study plan that fits a busy college schedule.",
   },
   {
     label: "I'm stuck on a problem",
     description: "Help me debug or work through it.",
     icon: Bug,
-    prompt: "I'm stuck while working on this task. Help me troubleshoot it step by step. Start by asking for the missing details if you need them.",
+    prompt:
+      "I'm stuck while working on this task. Help me troubleshoot it step by step. Start by asking for the missing details if you need them.",
   },
   {
     label: "What's my next step?",
     description: "Give me one manageable action.",
     icon: Compass,
-    prompt: "I'm unsure how to start this task. Give me one concrete action I can finish in the next 20 minutes.",
+    prompt:
+      "I'm unsure how to start this task. Give me one concrete action I can finish in the next 20 minutes.",
   },
 ];
 
@@ -152,6 +155,15 @@ export default function MissionControl({
 
   const mentorTask =
     tasks.find((task) => task.id === mentorTaskId) || activeTask;
+  useEffect(() => {
+    console.log("MENTOR DEBUG:", {
+      mentorOpen,
+      mentorTaskId,
+      mentorTask: mentorTask?.title,
+      activeTask: activeTask?.title,
+      taskCount: tasks.length,
+    });
+  }, [mentorOpen, mentorTaskId, mentorTask, activeTask, tasks.length]);
 
   const completedCount = progress.completed.length;
   const totalCount = tasks.length;
@@ -298,8 +310,8 @@ export default function MissionControl({
         </h3>
 
         <p className="mt-2 text-sm leading-6 text-zinc-400">
-          Generate a career roadmap to get your first prioritized task,
-          a reason to start there, and a milestone to work toward.
+          Generate a career roadmap to get your first prioritized task, a reason
+          to start there, and a milestone to work toward.
         </p>
 
         {recommendations.length > 0 ? (
@@ -356,8 +368,8 @@ export default function MissionControl({
         </h2>
 
         <p className="relative mt-2 max-w-md text-sm leading-6 text-zinc-400">
-          No need to figure out the entire journey today. Focus on the
-          next step, make progress, and keep going.
+          No need to figure out the entire journey today. Focus on the next
+          step, make progress, and keep going.
         </p>
 
         <div className="relative mt-5">
@@ -388,9 +400,7 @@ export default function MissionControl({
                 <Bot size={21} />
               </div>
               <div className="min-w-0">
-                <h3 className="font-semibold text-white">
-                  PathFinder Mentor
-                </h3>
+                <h3 className="font-semibold text-white">PathFinder Mentor</h3>
                 <p className="truncate text-xs text-zinc-400">
                   Helping with: {mentorTask.title}
                 </p>
@@ -439,7 +449,12 @@ export default function MissionControl({
                 {mentorError}
                 <button
                   type="button"
-                  onClick={() => askMentor(mentorInput || "Please help me get started with this task.")}
+                  onClick={() =>
+                    askMentor(
+                      mentorInput ||
+                        "Please help me get started with this task.",
+                    )
+                  }
                   className="ml-1 underline underline-offset-2"
                   disabled={mentorBusy}
                 >
@@ -518,9 +533,7 @@ export default function MissionControl({
             Your next priority
           </div>
 
-          <p className="mt-4 text-xs text-zinc-500">
-            {activeTask.phaseTitle}
-          </p>
+          <p className="mt-4 text-xs text-zinc-500">{activeTask.phaseTitle}</p>
           <h3 className="mt-1 text-xl font-semibold leading-snug text-white">
             {activeTask.title}
           </h3>
@@ -581,9 +594,10 @@ export default function MissionControl({
 
             <button
               type="button"
-              onClick={() =>{ 
-                markStuck(activeTask.id) 
-                console.log("Mission Control: I'm stuck clicked");}}
+              onClick={() => {
+                markStuck(activeTask.id);
+                console.log("Mission Control: I'm stuck clicked");
+              }}
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium text-zinc-300 transition-colors hover:border-indigo-400/30 hover:bg-indigo-500/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
             >
               <MessageCircle size={16} />
@@ -598,9 +612,9 @@ export default function MissionControl({
             <h3 className="font-semibold">All roadmap phases completed!</h3>
           </div>
           <p className="mt-2 text-sm leading-6 text-zinc-400">
-            You've completed the milestones in this starter roadmap.
-            Review what you've learned and update your roadmap when you're
-            ready for the next challenge.
+            You've completed the milestones in this starter roadmap. Review what
+            you've learned and update your roadmap when you're ready for the
+            next challenge.
           </p>
           <button
             type="button"
@@ -664,11 +678,7 @@ export default function MissionControl({
                     {task.title}
                   </p>
                   <p className="mt-1 text-xs text-zinc-600">
-                    {completed
-                      ? "Completed"
-                      : current
-                        ? "Up next"
-                        : "Upcoming"}
+                    {completed ? "Completed" : current ? "Up next" : "Upcoming"}
                   </p>
                 </div>
               </div>
@@ -678,8 +688,8 @@ export default function MissionControl({
       </section>
 
       <p className="text-center text-[11px] leading-5 text-zinc-600">
-        Starter missions are generated from your roadmap phases. Time
-        estimates are illustrative, and progress is saved in this browser.
+        Starter missions are generated from your roadmap phases. Time estimates
+        are illustrative, and progress is saved in this browser.
       </p>
     </div>
   );
