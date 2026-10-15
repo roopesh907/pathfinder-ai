@@ -18,20 +18,23 @@ app = FastAPI(
     version="0.1.0",
 )
 
+allowed_origins = [
+    origin.strip().rstrip("/")
+    for origin in os.getenv(
+        "ALLOWED_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173,"
+        "http://localhost:4173,http://127.0.0.1:4173",
+    ).split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:4173",
-        "http://127.0.0.1:4173",
-        "ALLOWED_ORIGINS",
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=allowed_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
-
 
 # --------------------------------------------------
 # Curated career catalog
