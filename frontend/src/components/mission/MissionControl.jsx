@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -19,7 +18,8 @@ import {
   MessageCircle,
   LoaderCircle,
 } from "lucide-react";
-
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 const getMissionKey = (careerId) =>
   `pathfinder-mission-v1:${careerId || "default"}`;
 
@@ -32,10 +32,7 @@ function makeTasks(roadmap) {
     return {
       id: String(phase.phase ?? index + 1),
       phase: phase.phase ?? index + 1,
-      title:
-        skills[0] ||
-        phase.title ||
-        `Complete phase ${index + 1}`,
+      title: skills[0] || phase.title || `Complete phase ${index + 1}`,
       description:
         phase.description ||
         phase.rationale ||
@@ -78,7 +75,8 @@ const MENTOR_OPTIONS = [
   },
   {
     label: "Help me solve a problem",
-    prompt: "Help me work through a problem related to this mission step by step.",
+    prompt:
+      "Help me work through a problem related to this mission step by step.",
     icon: Bug,
   },
   {
@@ -100,10 +98,7 @@ export default function MissionControl({
   const storageKey = getMissionKey(careerId);
 
   const tasks = useMemo(() => makeTasks(roadmap), [roadmap]);
-  const taskIds = useMemo(
-    () => tasks.map((task) => task.id),
-    [tasks]
-  );
+  const taskIds = useMemo(() => tasks.map((task) => task.id), [tasks]);
 
   const [progress, setProgress] = useState({
     completed: [],
@@ -134,7 +129,7 @@ export default function MissionControl({
   }, [storageKey, progress]);
 
   const activeTask = tasks.find(
-    (task) => !progress.completed.includes(task.id)
+    (task) => !progress.completed.includes(task.id),
   );
 
   const mentorTask =
@@ -167,9 +162,7 @@ export default function MissionControl({
   }
 
   function markStuck(taskId) {
-    const selectedTask = tasks.find(
-      (task) => task.id === String(taskId)
-    );
+    const selectedTask = tasks.find((task) => task.id === String(taskId));
 
     if (!selectedTask) return;
 
@@ -212,7 +205,7 @@ export default function MissionControl({
 
   function resetProgress() {
     const confirmed = window.confirm(
-      "Reset your mission progress? This cannot be undone."
+      "Reset your mission progress? This cannot be undone.",
     );
 
     if (!confirmed) return;
@@ -229,7 +222,7 @@ export default function MissionControl({
 
     if (typeof onAskMentor !== "function") {
       setMentorError(
-        "The mentor service isn't connected yet. Please try again shortly."
+        "The mentor service isn't connected yet. Please try again shortly.",
       );
       return;
     }
@@ -279,7 +272,7 @@ export default function MissionControl({
     } catch (err) {
       setMentorError(
         err?.message ||
-          "I couldn't get a response right now. Please try again."
+          "I couldn't get a response right now. Please try again.",
       );
     } finally {
       setMentorBusy(false);
@@ -320,7 +313,8 @@ export default function MissionControl({
               Your mission starts here
             </h3>
             <p className="mt-1 text-sm text-zinc-400">
-              Choose a career and generate a roadmap to create your learning missions.
+              Choose a career and generate a roadmap to create your learning
+              missions.
             </p>
           </div>
         </div>
@@ -339,7 +333,10 @@ export default function MissionControl({
                 className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] p-3 text-left text-sm text-zinc-200 transition hover:bg-white/[0.06]"
               >
                 <span>
-                  {career.title || career.name || career.career_name || "Explore career"}
+                  {career.title ||
+                    career.name ||
+                    career.career_name ||
+                    "Explore career"}
                 </span>
                 <ArrowRight size={16} />
               </button>
@@ -440,13 +437,45 @@ export default function MissionControl({
                 }`}
               >
                 <div
-                  className={`max-w-[95%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm ${
+                  className={`max-w-[95%] min-w-0 rounded-2xl px-4 py-3 text-sm ${
                     message.role === "user"
-                      ? "bg-indigo-500/20 text-indigo-100"
+                      ? "whitespace-pre-wrap bg-indigo-500/20 text-indigo-100"
                       : "border border-white/10 bg-white/[0.04] text-zinc-300"
                   }`}
                 >
-                  {message.content}
+                  {message.role === "assistant" ? (
+                    <div
+                      className="
+                      break-words leading-6
+                      [&>*:first-child]:mt-0
+                      [&>*:last-child]:mb-0
+                      [&_h1]:mb-3 [&_h1]:mt-5 [&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-white
+                      [&_h2]:mb-2 [&_h2]:mt-4 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:text-white
+                      [&_h3]:mb-2 [&_h3]:mt-4 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-white
+                      [&_p]:my-2
+                      [&_strong]:font-semibold [&_strong]:text-white
+                      [&_em]:italic
+                      [&_ul]:my-3 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-6
+                      [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-6
+                      [&_li]:pl-1
+                     [&_a]:text-indigo-300 [&_a]:underline [&_a]:underline-offset-2
+                      [&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-indigo-400/50 [&_blockquote]:pl-3 [&_blockquote]:text-zinc-400
+                      [&_pre]:my-3 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-white/10 [&_pre]:bg-black/40 [&_pre]:p-3
+                      [&_code]:rounded [&_code]:bg-black/30 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-indigo-200
+                      [&_pre_code]:bg-transparent [&_pre_code]:p-0
+                      [&_hr]:my-4 [&_hr]:border-white/10
+                      [&_table]:my-3 [&_table]:w-full [&_table]:border-collapse
+                      [&_th]:border [&_th]:border-white/10 [&_th]:bg-white/5 [&_th]:p-2 [&_th]:text-left [&_th]:font-semibold
+                      [&_td]:border [&_td]:border-white/10 [&_td]:p-2
+                      "
+                    >
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {message.content || ""}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    message.content
+                  )}
                 </div>
               </div>
             ))}
@@ -538,9 +567,7 @@ export default function MissionControl({
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="text-xs text-zinc-500">
-                Phase {activeTask.phase}
-              </p>
+              <p className="text-xs text-zinc-500">Phase {activeTask.phase}</p>
 
               <h3 className="mt-1 text-lg font-semibold text-zinc-100">
                 {activeTask.title}
@@ -664,11 +691,7 @@ export default function MissionControl({
                     isCompleted ? "text-emerald-300" : "text-zinc-600"
                   }`}
                 >
-                  {isCompleted ? (
-                    <Check size={18} />
-                  ) : (
-                    <Circle size={18} />
-                  )}
+                  {isCompleted ? <Check size={18} /> : <Circle size={18} />}
                 </div>
 
                 <div className="min-w-0 flex-1">
