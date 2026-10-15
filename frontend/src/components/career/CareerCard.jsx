@@ -7,40 +7,68 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { formatSkill } from "../../utils/formatters";
 import { GLASS } from "../../constants/styles";
 import SkillTag from "./SkillTag";
 
-// Keep these values identical to the definitions in your original App.jsx.
 const GLASS_INTERACTIVE =
   `${GLASS} transition-colors hover:border-white/20 hover:bg-white/[0.07]`;
 
-const CareerCard = memo(function CareerCard({ career, onSelect }) {
-  const score = Math.max(
-    0,
-    Math.min(100, Number(career.match_score) || 0)
+function clampPercentage(value) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return 0;
+  }
+
+  return Math.round(Math.min(100, Math.max(0, number)) * 10) / 10;
+}
+
+function PercentageBar({ value, colorClass }) {
+  const percentage = clampPercentage(value);
+
+  return (
+    <div
+      className="h-1.5 w-full overflow-hidden rounded-full bg-white/10"
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={percentage}
+      aria-label={`${percentage}%`}
+    >
+      <div
+        className={`h-full rounded-full transition-[width] duration-300 ease-out ${colorClass}`}
+        style={{
+          width: `${percentage}%`,
+          maxWidth: "100%",
+        }}
+      />
+    </div>
   );
+}
+
+const CareerCard = memo(function CareerCard({ career, onSelect }) {
+  const score = clampPercentage(career.match_score);
 
   const metrics = [
     {
       label: "Skill coverage",
       value: career.skill_coverage,
-      color: "[&>div]:bg-sky-300",
+      color: "bg-sky-300",
     },
     {
       label: "Interest fit",
       value: career.interest_fit,
-      color: "[&>div]:bg-violet-300",
+      color: "bg-violet-300",
     },
     ...(career.goal_alignment != null
       ? [
           {
             label: "Goal alignment",
             value: career.goal_alignment,
-            color: "[&>div]:bg-emerald-300",
+            color: "bg-emerald-300",
           },
         ]
       : []),
@@ -105,9 +133,9 @@ const CareerCard = memo(function CareerCard({ career, onSelect }) {
             </span>
           </div>
 
-          <Progress
+          <PercentageBar
             value={score}
-            className="h-1.5 bg-white/10 [&>div]:bg-indigo-300"
+            colorClass="bg-indigo-300"
           />
 
           <p className="mt-2 text-[11px] leading-4 text-zinc-500">
@@ -123,23 +151,22 @@ const CareerCard = memo(function CareerCard({ career, onSelect }) {
           </p>
 
           {metrics.map((metric) => {
-            const value = Math.max(
-              0,
-              Math.min(100, Number(metric.value) || 0)
-            );
+            const value = clampPercentage(metric.value);
 
             return (
               <div key={metric.label}>
                 <div className="mb-1.5 flex justify-between gap-3 text-xs">
-                  <span className="text-zinc-400">{metric.label}</span>
+                  <span className="text-zinc-400">
+                    {metric.label}
+                  </span>
                   <span className="tabular-nums text-zinc-300">
                     {value}%
                   </span>
                 </div>
 
-                <Progress
+                <PercentageBar
                   value={value}
-                  className={`h-1 bg-white/10 ${metric.color}`}
+                  colorClass={metric.color}
                 />
               </div>
             );
@@ -155,7 +182,7 @@ const CareerCard = memo(function CareerCard({ career, onSelect }) {
             </p>
           </div>
 
-          {matchedSkills.length ? (
+          {matchedSkills.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
               {matchedSkills.map((skill) => (
                 <SkillTag key={skill}>
@@ -211,7 +238,7 @@ const CareerCard = memo(function CareerCard({ career, onSelect }) {
             Skills to explore next
           </p>
 
-          {missingSkills.length ? (
+          {missingSkills.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
               {missingSkills.map((skill) => (
                 <SkillTag key={skill} missing>
