@@ -11,6 +11,8 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, ValidationError
 
+import asyncio
+
 import database
 
 logger = logging.getLogger(__name__)
@@ -19,9 +21,14 @@ load_dotenv()
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 
-MAX_HISTORY_MESSAGES = 12
-MAX_HISTORY_MESSAGE_CHARS = 6000
-MAX_REPLY_TOKENS = 1000
+
+MAX_HISTORY_MESSAGES = 6
+MAX_HISTORY_MESSAGE_CHARS = 1800
+MAX_REPLY_TOKENS = 700
+
+MAX_GROQ_RETRIES = 1
+GROQ_RETRY_MAX_WAIT_SECONDS = 5.0
+
 
 app = FastAPI(
     title="PathFinder AI API",
@@ -557,6 +564,36 @@ def build_system_prompt(
         "or repeat the student's entire profile."
     )
 
+
+def get_groq_retry_delay(response: httpx.Response) -> float | None:
+    """Extract a short retry delay from Groq's rate-limit response."""
+
+    retry_after = response.headers.get("retry-after")
+
+    if retry_after:
+        try:
+            delay = float(retry_after)
+            if delay >= 0:
+                return delay
+        except ValueError:
+            pass
+
+    try:
+        data = response.json()
+        message = data.get("error", {}).get("message", "")
+    except (ValueError, AttributeError):
+        message = ""
+
+    match = re.search(
+        r"try again in\s+([\d.]+)\s*s",
+        message,
+        re.IGNORECASE,
+    )
+
+    if match:
+        return float(match.group(1))
+
+    return None
 
 # --------------------------------------------------
 # General helpers
@@ -1172,6 +1209,7 @@ async def remove_conversation(
 # Groq chat + persistent history
 # --------------------------------------------------
 
+
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
     api_key = os.getenv("GROQ_API_KEY")
@@ -1179,10 +1217,7 @@ async def chat(request: ChatRequest):
     if not api_key:
         raise HTTPException(
             status_code=503,
-            detail=(
-                "Chat is not configured. "
-                "Set GROQ_API_KEY in the backend environment."
-            ),
+            detail="Chat is temporarily unavailable because it is not configured.",
         )
 
     user_message = request.message.strip()
@@ -1196,7 +1231,6 @@ async def chat(request: ChatRequest):
     session_id = request.session_id or uuid4()
     conversation_id = request.conversation_id
 
-    # Verify that the conversation belongs to the supplied session.
     if conversation_id is not None:
         try:
             belongs = await database.conversation_belongs_to_session(
@@ -1226,7 +1260,6 @@ async def chat(request: ChatRequest):
         }
     ]
 
-    # Load recent messages so follow-up questions have context.
     if conversation_id is not None:
         try:
             history = await database.get_conversation_messages(
@@ -1238,7 +1271,6 @@ async def chat(request: ChatRequest):
 
         messages.extend(build_chat_history(history))
 
-    # Add the current user message once.
     messages.append({
         "role": "user",
         "content": user_message,
@@ -1253,15 +1285,44 @@ async def chat(request: ChatRequest):
 
     try:
         async with httpx.AsyncClient(
-            timeout=httpx.Timeout(60.0, connect=10.0)
+            timeout=httpx.Timeout(45.0, connect=10.0)
         ) as client:
-            response = await client.post(
-                GROQ_URL,
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json",
-                },
-                json=payload,
+            response = None
+
+            for attempt in range(MAX_GROQ_RETRIES + 1):
+                response = await client.post(
+                    GROQ_URL,
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json=payload,
+                )
+
+                if response.status_code != 429:
+                    break
+
+                delay = get_groq_retry_delay(response)
+
+                # Retry once only when the provider gives a short,
+                # usable delay. Avoid retry storms during heavy load.
+                if (
+                    attempt >= MAX_GROQ_RETRIES
+                    or delay is None
+                    or delay > GROQ_RETRY_MAX_WAIT_SECONDS
+                ):
+                    break
+
+                logger.warning(
+                    "Groq rate limit reached; retrying once in %.2f seconds",
+                    delay,
+                )
+                await asyncio.sleep(max(0.1, delay))
+
+        if response is None:
+            raise HTTPException(
+                status_code=502,
+                detail="The AI service did not return a response.",
             )
 
         response.raise_for_status()
@@ -1297,21 +1358,48 @@ async def chat(request: ChatRequest):
         logger.warning("Groq request timed out")
         raise HTTPException(
             status_code=504,
-            detail="The AI service timed out. Please try again.",
+            detail="The AI took too long to respond. Please try again.",
         )
 
     except httpx.HTTPStatusError as exc:
+        status = exc.response.status_code
+
         logger.error(
             "Groq returned HTTP %s: %s",
-            exc.response.status_code,
+            status,
             exc.response.text[:500],
         )
+
+        if status == 429:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "The AI mentor is temporarily busy. "
+                    "Please wait a few seconds before trying again."
+                ),
+            )
+
+        if status in (401, 403):
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "The AI service is not currently authorized. "
+                    "Please try again later."
+                ),
+            )
+
+        if status >= 500:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "The AI service is temporarily unavailable. "
+                    "Please try again shortly."
+                ),
+            )
+
         raise HTTPException(
             status_code=502,
-            detail=(
-                f"The AI service returned an error "
-                f"({exc.response.status_code}). Please try again."
-            ),
+            detail="The AI service could not process the request.",
         )
 
     except httpx.HTTPError:
@@ -1328,7 +1416,7 @@ async def chat(request: ChatRequest):
             detail="The AI service returned an invalid response.",
         )
 
-    # Save the exchange after the AI has responded successfully.
+    # Persist only after a successful AI response.
     try:
         if conversation_id is None:
             conversation_id = await database.create_conversation(
