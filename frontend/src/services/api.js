@@ -1,33 +1,51 @@
-
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL ||
+  "https://pathfinder-ai-omoc.onrender.com"
+).replace(/\/+$/, "");
 
 async function apiRequest(endpoint, options = {}) {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
+  let response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    });
+  } catch {
+    throw new Error(
+      "Could not reach the backend. Please check your internet connection and try again.",
+    );
+  }
+
+  let data = null;
+
+  try {
+    data = await response.json();
+  } catch {
+    // The server returned an empty or non-JSON response.
+  }
 
   if (!response.ok) {
-    let message = `Request failed with HTTP ${response.status}`;
+    const detail = data?.detail;
 
-    try {
-      const errorData = await response.json();
-      message = errorData.detail
-        ? typeof errorData.detail === "string"
-          ? errorData.detail
-          : JSON.stringify(errorData.detail)
-        : message;
-    } catch {
-      // Keep the original HTTP error message.
-    }
+    const message =
+      typeof detail === "string"
+        ? detail
+        : Array.isArray(detail)
+          ? JSON.stringify(detail)
+          : `Request failed with HTTP ${response.status}.`;
 
     throw new Error(message);
   }
 
-  return response.json();
+  if (data === null) {
+    throw new Error("The server returned an empty or invalid response.");
+  }
+
+  return data;
 }
 
 export async function testBackendConnection() {
