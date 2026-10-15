@@ -1,4 +1,3 @@
-
 import { memo } from "react";
 import {
   Card,
@@ -19,14 +18,20 @@ const GLASS_INTERACTIVE =
 function clampPercentage(value) {
   const number = Number(value);
 
-  if (!Number.isFinite(number)) {
+  if (value == null || value === "" || !Number.isFinite(number)) {
     return 0;
   }
 
   return Math.round(Math.min(100, Math.max(0, number)) * 10) / 10;
 }
 
-function PercentageBar({ value, colorClass }) {
+function safeList(value) {
+  return Array.isArray(value)
+    ? value.filter((item) => item != null && String(item).trim() !== "")
+    : [];
+}
+
+function PercentageBar({ value, colorClass, label }) {
   const percentage = clampPercentage(value);
 
   return (
@@ -36,20 +41,34 @@ function PercentageBar({ value, colorClass }) {
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={percentage}
-      aria-label={`${percentage}%`}
+      aria-label={label || `${percentage}%`}
     >
       <div
         className={`h-full rounded-full transition-[width] duration-300 ease-out ${colorClass}`}
-        style={{
-          width: `${percentage}%`,
-          maxWidth: "100%",
-        }}
+        style={{ width: `${percentage}%` }}
       />
     </div>
   );
 }
 
-const CareerCard = memo(function CareerCard({ career, onSelect }) {
+function SkillList({ items, missing = false }) {
+  if (!items.length) return null;
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {items.map((skill, index) => (
+        <SkillTag
+          key={`${String(skill)}-${index}`}
+          missing={missing}
+        >
+          {formatSkill(String(skill))}
+        </SkillTag>
+      ))}
+    </div>
+  );
+}
+
+const CareerCard = memo(function CareerCard({ career = {}, onSelect }) {
   const score = clampPercentage(career.match_score);
 
   const metrics = [
@@ -74,21 +93,13 @@ const CareerCard = memo(function CareerCard({ career, onSelect }) {
       : []),
   ];
 
-  const matchedSkills = Array.isArray(career.matched_skills)
-    ? career.matched_skills
-    : [];
+  const matchedSkills = safeList(career.matched_skills);
+  const missingSkills = safeList(career.missing_skills);
+  const matchedInterests = safeList(career.matched_interests);
+  const matchedGoals = safeList(career.matched_goal_keywords);
 
-  const missingSkills = Array.isArray(career.missing_skills)
-    ? career.missing_skills
-    : [];
-
-  const matchedInterests = Array.isArray(career.matched_interests)
-    ? career.matched_interests
-    : [];
-
-  const matchedGoals = Array.isArray(career.matched_goal_keywords)
-    ? career.matched_goal_keywords
-    : [];
+  const careerTitle = career.title || "Career path";
+  const careerId = career.career_id ?? career.id;
 
   return (
     <Card
@@ -98,7 +109,7 @@ const CareerCard = memo(function CareerCard({ career, onSelect }) {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <CardTitle className="font-medium leading-6 text-zinc-100">
-              {career.title}
+              {careerTitle}
             </CardTitle>
 
             {career.field && (
@@ -124,7 +135,6 @@ const CareerCard = memo(function CareerCard({ career, onSelect }) {
           {career.description || "No description available."}
         </p>
 
-        {/* Overall profile alignment */}
         <div>
           <div className="mb-2 flex items-center justify-between text-xs">
             <span className="text-zinc-400">Overall alignment</span>
@@ -136,6 +146,7 @@ const CareerCard = memo(function CareerCard({ career, onSelect }) {
           <PercentageBar
             value={score}
             colorClass="bg-indigo-300"
+            label={`Overall profile alignment: ${score}%`}
           />
 
           <p className="mt-2 text-[11px] leading-4 text-zinc-500">
@@ -144,7 +155,6 @@ const CareerCard = memo(function CareerCard({ career, onSelect }) {
           </p>
         </div>
 
-        {/* Individual score components */}
         <div className="space-y-3 rounded-xl border border-white/[0.07] bg-black/10 p-3">
           <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500">
             Score breakdown
@@ -156,9 +166,7 @@ const CareerCard = memo(function CareerCard({ career, onSelect }) {
             return (
               <div key={metric.label}>
                 <div className="mb-1.5 flex justify-between gap-3 text-xs">
-                  <span className="text-zinc-400">
-                    {metric.label}
-                  </span>
+                  <span className="text-zinc-400">{metric.label}</span>
                   <span className="tabular-nums text-zinc-300">
                     {value}%
                   </span>
@@ -167,13 +175,13 @@ const CareerCard = memo(function CareerCard({ career, onSelect }) {
                 <PercentageBar
                   value={value}
                   colorClass={metric.color}
+                  label={`${metric.label}: ${value}%`}
                 />
               </div>
             );
           })}
         </div>
 
-        {/* Matched skills */}
         <div>
           <div className="mb-2 flex items-center gap-2">
             <CheckCircle2 size={14} className="text-emerald-300" />
@@ -183,13 +191,7 @@ const CareerCard = memo(function CareerCard({ career, onSelect }) {
           </div>
 
           {matchedSkills.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {matchedSkills.map((skill) => (
-                <SkillTag key={skill}>
-                  {formatSkill(skill)}
-                </SkillTag>
-              ))}
-            </div>
+            <SkillList items={matchedSkills} />
           ) : (
             <p className="text-xs leading-5 text-zinc-500">
               No matching skills identified yet. That's okay—you can build
@@ -198,54 +200,31 @@ const CareerCard = memo(function CareerCard({ career, onSelect }) {
           )}
         </div>
 
-        {/* Matched interests */}
         {matchedInterests.length > 0 && (
           <div>
             <p className="mb-2 text-xs font-medium text-zinc-300">
               Interests that align
             </p>
-
-            <div className="flex flex-wrap gap-1.5">
-              {matchedInterests.map((interest) => (
-                <SkillTag key={interest}>
-                  {formatSkill(interest)}
-                </SkillTag>
-              ))}
-            </div>
+            <SkillList items={matchedInterests} />
           </div>
         )}
 
-        {/* Goal keywords */}
         {matchedGoals.length > 0 && (
           <div>
             <p className="mb-2 text-xs font-medium text-zinc-300">
               Relevant parts of your goal
             </p>
-
-            <div className="flex flex-wrap gap-1.5">
-              {matchedGoals.map((goal) => (
-                <SkillTag key={goal}>
-                  {formatSkill(goal)}
-                </SkillTag>
-              ))}
-            </div>
+            <SkillList items={matchedGoals} />
           </div>
         )}
 
-        {/* Missing skills */}
         <div>
           <p className="mb-2 text-xs font-medium text-zinc-300">
             Skills to explore next
           </p>
 
           {missingSkills.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {missingSkills.map((skill) => (
-                <SkillTag key={skill} missing>
-                  {formatSkill(skill)}
-                </SkillTag>
-              ))}
-            </div>
+            <SkillList items={missingSkills} missing />
           ) : (
             <p className="text-xs leading-5 text-zinc-500">
               You've covered all the skills currently listed in this career
@@ -258,11 +237,12 @@ const CareerCard = memo(function CareerCard({ career, onSelect }) {
       <CardFooter className="px-4">
         <Button
           type="button"
-          onClick={() => onSelect(career)}
+          onClick={() => onSelect?.(career)}
+          disabled={typeof onSelect !== "function"}
           className="w-full bg-indigo-500 font-medium text-white hover:bg-indigo-400"
         >
           Build roadmap
-          <ArrowRight size={15} />
+          <ArrowRight size={15} className="ml-2" />
         </Button>
       </CardFooter>
     </Card>

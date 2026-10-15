@@ -1,4 +1,3 @@
-
 import {
   BookOpen,
   CheckCircle2,
@@ -10,22 +9,16 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { GLASS } from "../../constants/styles";
-// import { formatSkill } from "../../utils/formatters"; // Removed duplicate import
 import { Badge } from "@/components/ui/badge";
-import {
-  Alert,
-  AlertDescription,
-} from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-
 import SkillTag from "../career/SkillTag";
 import RoadmapSkeleton from "./RoadmapSkeleton";
 
-
-
-
 function formatSkill(skill) {
-  if (typeof skill !== "string") return String(skill ?? "");
+  if (typeof skill !== "string") {
+    return String(skill ?? "");
+  }
 
   return skill
     .replace(/[_-]+/g, " ")
@@ -34,9 +27,27 @@ function formatSkill(skill) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-// Keep the phase styling consistent with your original App.jsx.
-// If your original ROADMAP_PHASE_STYLES has different colors or icons,
-// copy that exact constant here instead.
+function safeList(value) {
+  return Array.isArray(value)
+    ? value.filter((item) => item != null && String(item).trim() !== "")
+    : [];
+}
+
+function formatMinutes(value) {
+  const minutes = Number(value);
+
+  if (value == null || value === "" || !Number.isFinite(minutes) || minutes <= 0) {
+    return null;
+  }
+
+  if (minutes < 60) {
+    return `${Math.round(minutes)} min`;
+  }
+
+  const hours = minutes / 60;
+  return `${Number.isInteger(hours) ? hours : Math.round(hours * 10) / 10} hrs`;
+}
+
 const ROADMAP_PHASE_STYLES = [
   {
     icon: GraduationCap,
@@ -60,7 +71,7 @@ const ROADMAP_PHASE_STYLES = [
   },
 ];
 
-export default function RoadmapView({ roadmap, loading, error }) {
+export default function RoadmapView({ roadmap, loading = false, error = null }) {
   if (loading) return <RoadmapSkeleton />;
 
   if (error) {
@@ -95,24 +106,30 @@ export default function RoadmapView({ roadmap, loading, error }) {
     );
   }
 
-  const phases = Array.isArray(roadmap.phases) ? roadmap.phases : [];
-
-  const skills = Array.isArray(roadmap.skills_to_develop)
-    ? roadmap.skills_to_develop
-    : [];
+  const phases = safeList(roadmap.phases);
+  const skills = safeList(roadmap.skills_to_develop);
 
   const duration = Number(roadmap.estimated_duration_weeks);
   const weeklyHours = Number(roadmap.weekly_hours);
 
   const totalWeeks =
-    Number.isFinite(duration) && duration >= 0 ? duration : null;
+    roadmap.estimated_duration_weeks != null &&
+    roadmap.estimated_duration_weeks !== "" &&
+    Number.isFinite(duration) &&
+    duration >= 0
+      ? duration
+      : null;
 
   const validWeeklyHours =
-    Number.isFinite(weeklyHours) && weeklyHours >= 0 ? weeklyHours : null;
+    roadmap.weekly_hours != null &&
+    roadmap.weekly_hours !== "" &&
+    Number.isFinite(weeklyHours) &&
+    weeklyHours >= 0
+      ? weeklyHours
+      : null;
 
   return (
     <div className="space-y-6">
-      {/* Roadmap overview */}
       <section className="relative overflow-hidden rounded-2xl border border-indigo-300/20 bg-gradient-to-br from-indigo-500/[0.16] via-violet-500/[0.08] to-transparent p-5">
         <div
           aria-hidden="true"
@@ -131,7 +148,7 @@ export default function RoadmapView({ roadmap, loading, error }) {
           </div>
 
           <h3 className="mt-4 text-xl font-semibold leading-snug tracking-tight text-white">
-            {roadmap.career?.title || "Your career path"}
+            {roadmap.career?.title || roadmap.career_title || "Your career path"}
           </h3>
 
           <p className="mt-2 text-xs leading-5 text-zinc-400">
@@ -174,7 +191,6 @@ export default function RoadmapView({ roadmap, loading, error }) {
         </div>
       </section>
 
-      {/* Skill gap */}
       <section>
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
@@ -197,9 +213,9 @@ export default function RoadmapView({ roadmap, loading, error }) {
         <div className={`rounded-xl p-4 ${GLASS}`}>
           {skills.length ? (
             <div className="flex flex-wrap gap-2">
-              {skills.map((skill) => (
-                <SkillTag key={skill} missing>
-                  {formatSkill(skill)}
+              {skills.map((skill, index) => (
+                <SkillTag key={`${String(skill)}-${index}`} missing>
+                  {formatSkill(String(skill))}
                 </SkillTag>
               ))}
             </div>
@@ -213,7 +229,6 @@ export default function RoadmapView({ roadmap, loading, error }) {
 
       <Separator className="bg-white/10" />
 
-      {/* Visual learning journey */}
       <section>
         <div className="mb-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-200/70">
@@ -240,13 +255,13 @@ export default function RoadmapView({ roadmap, loading, error }) {
 
               const PhaseIcon = style.icon;
               const phaseNumber = phase.phase ?? index + 1;
-
-              const phaseSkills = Array.isArray(phase.skills)
-                ? phase.skills
-                : [];
+              const phaseSkills = safeList(phase.skills);
+              const phaseMinutes = formatMinutes(
+                phase.estimated_minutes ?? phase.estimatedMinutes,
+              );
 
               return (
-                <li key={phase.phase ?? index} className="relative">
+                <li key={phase.id ?? phase.phase ?? index} className="relative">
                   {index < phases.length - 1 && (
                     <div
                       aria-hidden="true"
@@ -280,17 +295,36 @@ export default function RoadmapView({ roadmap, loading, error }) {
                                 : "weeks"}
                             </Badge>
                           )}
+
+                          {phaseMinutes && (
+                            <Badge
+                              variant="outline"
+                              className="h-5 border-white/10 bg-white/[0.03] px-1.5 text-[10px] font-normal text-zinc-400"
+                            >
+                              <Clock3 size={10} className="mr-1" />
+                              {phaseMinutes}
+                            </Badge>
+                          )}
                         </div>
 
                         <h5 className="mt-1 text-sm font-semibold leading-5 text-zinc-100">
                           {phase.title || `Learning phase ${phaseNumber}`}
                         </h5>
 
+                        {(phase.description || phase.rationale) && (
+                          <p className="mt-2 text-xs leading-5 text-zinc-400">
+                            {phase.description || phase.rationale}
+                          </p>
+                        )}
+
                         {phaseSkills.length > 0 && (
                           <div className="mt-3 flex flex-wrap gap-1.5">
-                            {phaseSkills.map((skill) => (
-                              <SkillTag key={skill} missing>
-                                {formatSkill(skill)}
+                            {phaseSkills.map((skill, skillIndex) => (
+                              <SkillTag
+                                key={`${String(skill)}-${skillIndex}`}
+                                missing
+                              >
+                                {formatSkill(String(skill))}
                               </SkillTag>
                             ))}
                           </div>
@@ -330,7 +364,6 @@ export default function RoadmapView({ roadmap, loading, error }) {
         )}
       </section>
 
-      {/* Resource guidance */}
       {roadmap.resource_guidance && (
         <section className={`rounded-xl p-4 ${GLASS}`}>
           <div className="flex items-start gap-3">

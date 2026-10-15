@@ -32,14 +32,15 @@ function makeTasks(roadmap) {
     return {
       id: String(phase.phase ?? index + 1),
       phase: phase.phase ?? index + 1,
-      title: skills[0] || phase.title || `Complete phase ${index + 1}`,
+      title: phase.title || skills[0] || `Complete phase ${index + 1}`,
       description:
         phase.description ||
         phase.rationale ||
         "Build your knowledge through focused practice.",
       rationale: phase.rationale || phase.description || "",
       milestone: phase.milestone || "",
-      estimatedMinutes: Number(phase.estimatedMinutes) || 60,
+      estimatedMinutes:
+        Number(phase.estimated_minutes ?? phase.estimatedMinutes) || 60,
       skills,
     };
   });
