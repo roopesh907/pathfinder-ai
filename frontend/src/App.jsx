@@ -375,6 +375,15 @@ export default function App() {
     }
   }
 
+  async function handleMentorQuestion(question) {
+    const reply = await sendChatMessage(question, profile);
+
+    setActiveConversationIdState(getActiveConversationId());
+    void refreshConversations();
+
+    return reply;
+  }
+
   /* ------------------------------ Roadmaps ------------------------------- */
 
   async function handleRoadmap(career) {
@@ -423,6 +432,7 @@ export default function App() {
           error={roadmapError}
           recommendations={recommendations}
           onChooseCareer={handleRoadmap}
+          onAskMentor={handleMentorQuestion}
         />
       }
     />
@@ -447,7 +457,6 @@ export default function App() {
             : [
                 { label: "Explore", href: "/#explore" },
                 { label: "Career paths", href: "/careers" },
-                
               ]
         }
         ctaLabel={isChat ? "Edit profile" : "Find my path"}
