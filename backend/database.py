@@ -44,8 +44,10 @@ async def create_conversation(
             (session_id, title[:80]),
         )
         row = cast(dict[str, UUID] | None, await cursor.fetchone())
+
         if row is None:
             raise RuntimeError("Conversation was not created.")
+
         return row["id"]
 
 
@@ -118,6 +120,29 @@ async def conversation_belongs_to_session(
             SELECT 1
             FROM public.conversations
             WHERE id = %s AND session_id = %s
+            """,
+            (conversation_id, session_id),
+        )
+        return await cursor.fetchone() is not None
+
+
+async def delete_conversation(
+    conversation_id: UUID,
+    session_id: UUID,
+) -> bool:
+    """
+    Delete a conversation only when it belongs to the supplied session.
+
+    Related messages are removed by the database's ON DELETE CASCADE
+    foreign-key constraint. The ownership check and deletion happen in
+    the same SQL statement.
+    """
+    async with await connect_db() as conn:
+        cursor = await conn.execute(
+            """
+            DELETE FROM public.conversations
+            WHERE id = %s AND session_id = %s
+            RETURNING id
             """,
             (conversation_id, session_id),
         )

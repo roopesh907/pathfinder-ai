@@ -1,4 +1,5 @@
 
+import logging
 import os
 from uuid import UUID, uuid4
 
@@ -10,7 +11,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, ValidationError
 
 import database
-import logging
 
 logger = logging.getLogger(__name__)
 load_dotenv()
@@ -21,7 +21,7 @@ GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 app = FastAPI(
     title="PathFinder AI API",
     description="Career discovery, skill-gap analysis, and roadmap planning",
-    version="0.2.0",
+    version="0.3.0",
 )
 
 app.add_middleware(
@@ -34,10 +34,9 @@ app.add_middleware(
         "http://127.0.0.1:4173",
     ],
     allow_credentials=False,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
 )
-
 
 # --------------------------------------------------
 # Curated career catalog
@@ -184,10 +183,10 @@ CAREERS = [
     },
 ]
 
-
 # --------------------------------------------------
 # Request models
 # --------------------------------------------------
+
 
 class StudentProfile(BaseModel):
     education_level: str = Field(
@@ -216,6 +215,7 @@ class ChatRequest(BaseModel):
 # --------------------------------------------------
 # Matching helpers
 # --------------------------------------------------
+
 
 def normalize(items: list[str]) -> set[str]:
     return {
@@ -317,14 +317,17 @@ def database_error() -> HTTPException:
 
 def make_conversation_title(message: str) -> str:
     title = " ".join(message.split()).strip()
+
     if len(title) > 80:
         title = title[:77].rstrip() + "..."
+
     return title or "New conversation"
 
 
 # --------------------------------------------------
 # Basic routes
 # --------------------------------------------------
+
 
 @app.get("/")
 async def root():
@@ -353,6 +356,7 @@ async def get_careers():
 # --------------------------------------------------
 # Career matching
 # --------------------------------------------------
+
 
 @app.post("/api/match")
 async def match_careers(profile: StudentProfile):
@@ -384,6 +388,7 @@ async def match_careers(profile: StudentProfile):
 # --------------------------------------------------
 # Roadmap generation
 # --------------------------------------------------
+
 
 @app.post("/api/roadmap")
 async def create_roadmap(request: RoadmapRequest):
@@ -477,6 +482,7 @@ async def create_roadmap(request: RoadmapRequest):
 # Persistent conversation history
 # --------------------------------------------------
 
+
 @app.get("/api/conversations")
 async def list_conversations(
     session_id: UUID = Query(...),
@@ -484,9 +490,7 @@ async def list_conversations(
     """List conversations belonging to a browser session."""
     try:
         conversations = await database.get_conversations(session_id)
-        return {
-            "conversations": conversations,
-        }
+        return {"conversations": conversations}
     except (psycopg.Error, RuntimeError):
         logger.exception("PathFinder database operation failed")
         raise database_error()
@@ -525,9 +529,43 @@ async def list_conversation_messages(
         raise database_error()
 
 
+@app.delete("/api/conversations/{conversation_id}")
+async def remove_conversation(
+    conversation_id: UUID,
+    session_id: UUID = Query(...),
+):
+    """
+    Delete a conversation belonging to the supplied browser session.
+    The database cascades the deletion to its messages.
+    """
+    try:
+        deleted = await database.delete_conversation(
+            conversation_id,
+            session_id,
+        )
+
+        if not deleted:
+            # Avoid revealing whether an ID belongs to another session.
+            raise HTTPException(
+                status_code=404,
+                detail="Conversation not found.",
+            )
+
+        return {
+            "deleted": True,
+            "conversation_id": conversation_id,
+        }
+    except HTTPException:
+        raise
+    except (psycopg.Error, RuntimeError):
+        logger.exception("PathFinder database operation failed")
+        raise database_error()
+
+
 # --------------------------------------------------
 # Groq chat + persistent history
 # --------------------------------------------------
+
 
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
@@ -536,14 +574,15 @@ async def chat(request: ChatRequest):
     if not api_key:
         raise HTTPException(
             status_code=503,
-            detail="Chat is not configured. Set GROQ_API_KEY in the backend environment.",
+            detail=(
+                "Chat is not configured. "
+                "Set GROQ_API_KEY in the backend environment."
+            ),
         )
 
-    # Reuse the supplied session, or create one for a new browser.
     session_id = request.session_id or uuid4()
     conversation_id = request.conversation_id
 
-    # Reject conversation IDs that do not belong to this session.
     if conversation_id is not None:
         try:
             belongs = await database.conversation_belongs_to_session(
@@ -631,7 +670,6 @@ async def chat(request: ChatRequest):
             detail="Could not get a reply from the AI service.",
         )
 
-    # Create the conversation on its first successful chat message.
     try:
         if conversation_id is None:
             conversation_id = await database.create_conversation(

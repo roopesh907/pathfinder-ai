@@ -9,12 +9,18 @@ import {
 } from "motion/react";
 import {
   ArrowRight,
+  BookOpen,
+  CheckCircle2,
+  Clock3,
   History,
   LoaderCircle,
   PanelRight,
   PanelRightClose,
   Plus,
+  Rocket,
   Send,
+  Target,
+  Trash2,
 } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -52,10 +58,11 @@ import {
   getActiveConversationId,
   setActiveConversationId,
   startNewConversation,
+  deleteConversation,
 } from "./services/chat";
 
 /* -------------------------------------------------------------------------- */
-/*  Glass styles                                                              */
+/* Glass styles                                                               */
 /* -------------------------------------------------------------------------- */
 
 const GLASS =
@@ -64,7 +71,7 @@ const GLASS =
 const GLASS_INTERACTIVE = `${GLASS} transition-colors hover:border-white/20 hover:bg-white/[0.07]`;
 
 /* -------------------------------------------------------------------------- */
-/*  Options & helpers                                                         */
+/* Options & helpers                                                          */
 /* -------------------------------------------------------------------------- */
 
 const EDUCATION_OPTIONS = [
@@ -113,10 +120,31 @@ const CHAT_SUGGESTIONS = [
   "What should I learn first?",
 ];
 
+const ROADMAP_PHASE_STYLES = [
+  {
+    icon: BookOpen,
+    label: "Learn",
+    color: "text-sky-200",
+    surface: "border-sky-300/20 bg-sky-400/10",
+  },
+  {
+    icon: Target,
+    label: "Practice",
+    color: "text-violet-200",
+    surface: "border-violet-300/20 bg-violet-400/10",
+  },
+  {
+    icon: Rocket,
+    label: "Build",
+    color: "text-emerald-200",
+    surface: "border-emerald-300/20 bg-emerald-400/10",
+  },
+];
+
 const formatRupees = (amount) => `₹${Number(amount).toLocaleString("en-IN")}`;
 
 function formatSkill(skill = "") {
-  return skill
+  return String(skill)
     .split(/[-_\s]+/)
     .filter(Boolean)
     .map((word) => word[0].toUpperCase() + word.slice(1))
@@ -142,19 +170,21 @@ function useMediaQuery(query) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Small components                                                          */
+/* Small components                                                           */
 /* -------------------------------------------------------------------------- */
 
 function RichText({ text }) {
-  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
-    part.startsWith("**") && part.endsWith("**") ? (
-      <strong key={i} className="font-semibold text-white">
-        {part.slice(2, -2)}
-      </strong>
-    ) : (
-      part
-    ),
-  );
+  return String(text ?? "")
+    .split(/(\*\*[^*]+\*\*)/g)
+    .map((part, i) =>
+      part.startsWith("**") && part.endsWith("**") ? (
+        <strong key={i} className="font-semibold text-white">
+          {part.slice(2, -2)}
+        </strong>
+      ) : (
+        part
+      ),
+    );
 }
 
 const MessageBubble = memo(function MessageBubble({ message }) {
@@ -326,16 +356,21 @@ const CareerCard = memo(function CareerCard({ career, onSelect }) {
 function RoadmapSkeleton() {
   return (
     <div className="space-y-4">
-      <Skeleton className="h-24 w-full rounded-xl bg-white/6" />
-      <Skeleton className="h-14 w-full rounded-xl bg-white/6" />
-      <Skeleton className="h-14 w-full rounded-xl bg-white/6" />
+      <Skeleton className="h-36 w-full rounded-2xl bg-white/[0.06]" />
+      <Skeleton className="h-32 w-full rounded-2xl bg-white/[0.06]" />
+      <Skeleton className="h-32 w-full rounded-2xl bg-white/[0.06]" />
+      <Skeleton className="h-32 w-full rounded-2xl bg-white/[0.06]" />
 
       <p className="text-center text-xs text-zinc-500">
-        Building your learning plan
+        Building your learning plan…
       </p>
     </div>
   );
 }
+
+/* -------------------------------------------------------------------------- */
+/* Redesigned roadmap                                                         */
+/* -------------------------------------------------------------------------- */
 
 function RoadmapView({ roadmap, loading, error }) {
   if (loading) return <RoadmapSkeleton />;
@@ -352,55 +387,127 @@ function RoadmapView({ roadmap, loading, error }) {
 
   if (!roadmap) {
     return (
-      <div className="py-14 text-center">
-        <p className="text-sm font-medium text-zinc-200">No roadmap yet</p>
+      <div className={`rounded-2xl p-7 text-center ${GLASS}`}>
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-indigo-300/20 bg-indigo-400/10">
+          <Target size={22} className="text-indigo-200" />
+        </div>
+
+        <p className="mt-4 text-sm font-medium text-zinc-100">
+          Your next chapter starts here
+        </p>
+
         <p className="mx-auto mt-2 max-w-xs text-xs leading-5 text-zinc-500">
-          Select a career from the matches tab to generate a learning plan.
+          Choose a career from Matches to turn your interests into a structured
+          learning journey.
         </p>
       </div>
     );
   }
 
+  const phases = Array.isArray(roadmap.phases) ? roadmap.phases : [];
+  const skills = Array.isArray(roadmap.skills_to_develop)
+    ? roadmap.skills_to_develop
+    : [];
+  const duration = Number(roadmap.estimated_duration_weeks);
+  const weeklyHours = Number(roadmap.weekly_hours);
+  const totalWeeks =
+    Number.isFinite(duration) && duration >= 0 ? duration : null;
+  const validWeeklyHours =
+    Number.isFinite(weeklyHours) && weeklyHours >= 0 ? weeklyHours : null;
+
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-xs text-zinc-500">Selected path</p>
-        <h3 className="mt-1 text-lg font-semibold text-zinc-100">
-          {roadmap.career?.title || "Your career path"}
-        </h3>
+      {/* Roadmap overview */}
+      <section className="relative overflow-hidden rounded-2xl border border-indigo-300/20 bg-gradient-to-br from-indigo-500/[0.16] via-violet-500/[0.08] to-transparent p-5">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-indigo-400/10 blur-3xl"
+        />
 
-        <dl className="mt-4 grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <dt className="text-xs text-zinc-500">Estimated timeline</dt>
-            <dd className="mt-1 font-medium tabular-nums text-zinc-100">
-              {roadmap.estimated_duration_weeks ?? "—"} weeks
-            </dd>
+        <div className="relative">
+          <div className="flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-indigo-300/20 bg-indigo-300/10">
+              <Target size={16} className="text-indigo-200" />
+            </span>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-200/80">
+              Your learning journey
+            </p>
           </div>
 
-          <div>
-            <dt className="text-xs text-zinc-500">Weekly commitment</dt>
-            <dd className="mt-1 font-medium tabular-nums text-zinc-100">
-              {roadmap.weekly_hours ?? "—"} hours
-            </dd>
-          </div>
-        </dl>
-      </div>
+          <h3 className="mt-4 text-xl font-semibold leading-snug tracking-tight text-white">
+            {roadmap.career?.title || "Your career path"}
+          </h3>
 
+          <p className="mt-2 text-xs leading-5 text-zinc-400">
+            A practical sequence of learning, practice, and project work built
+            around your profile.
+          </p>
+
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+              <div className="flex items-center gap-2 text-zinc-400">
+                <Clock3 size={14} />
+                <span className="text-[11px]">Estimated timeline</span>
+              </div>
+              <p className="mt-2 text-xl font-semibold tabular-nums text-white">
+                {totalWeeks === null ? "—" : `${totalWeeks} weeks`}
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+              <div className="flex items-center gap-2 text-zinc-400">
+                <BookOpen size={14} />
+                <span className="text-[11px]">Weekly commitment</span>
+              </div>
+              <p className="mt-2 text-xl font-semibold tabular-nums text-white">
+                {validWeeklyHours === null ? "—" : `${validWeeklyHours} hrs`}
+              </p>
+            </div>
+          </div>
+
+          {roadmap.pacing && (
+            <div className="mt-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+              <p className="text-xs leading-5 text-zinc-300">
+                <span className="text-zinc-500">Suggested pace · </span>
+                {roadmap.pacing}
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Skill gap */}
       <section>
-        <h4 className="mb-3 text-sm font-medium text-zinc-200">
-          Skills to develop
-        </h4>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <h4 className="text-sm font-semibold text-zinc-100">
+              Skills to develop
+            </h4>
+            <p className="mt-1 text-[11px] text-zinc-500">
+              Focus areas identified for this path
+            </p>
+          </div>
 
-        <div className="flex flex-wrap gap-2">
-          {(roadmap.skills_to_develop || []).length ? (
-            roadmap.skills_to_develop.map((skill) => (
-              <SkillTag key={skill} missing>
-                {formatSkill(skill)}
-              </SkillTag>
-            ))
+          <Badge
+            variant="outline"
+            className="border-white/10 bg-white/[0.03] text-zinc-300"
+          >
+            {skills.length} {skills.length === 1 ? "skill" : "skills"}
+          </Badge>
+        </div>
+
+        <div className={`rounded-xl p-4 ${GLASS}`}>
+          {skills.length ? (
+            <div className="flex flex-wrap gap-2">
+              {skills.map((skill) => (
+                <SkillTag key={skill} missing>
+                  {formatSkill(skill)}
+                </SkillTag>
+              ))}
+            </div>
           ) : (
-            <p className="text-xs text-zinc-500">
-              No additional skills were listed.
+            <p className="text-xs leading-5 text-zinc-500">
+              No additional skills were listed for this profile.
             </p>
           )}
         </div>
@@ -408,58 +515,137 @@ function RoadmapView({ roadmap, loading, error }) {
 
       <Separator className="bg-white/10" />
 
+      {/* Visual learning journey */}
       <section>
-        <h4 className="mb-4 text-sm font-medium text-zinc-200">
-          Learning phases
-        </h4>
+        <div className="mb-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-200/70">
+            The journey
+          </p>
+          <h4 className="mt-1 text-base font-semibold text-zinc-100">
+            From foundations to real projects
+          </h4>
+          <p className="mt-1 text-xs leading-5 text-zinc-500">
+            Work through each phase at your own pace. The timeline is an
+            estimate, not a deadline.
+          </p>
+        </div>
 
-        <ol className="space-y-5">
-          {(roadmap.phases || []).map((phase, index) => (
-            <li
-              key={phase.phase ?? index}
-              className="border-l border-white/10 pl-4"
-            >
-              <p className="text-xs text-zinc-500">
-                Phase {phase.phase ?? index + 1} · {phase.duration_weeks} weeks
-              </p>
+        {phases.length ? (
+          <ol className="space-y-3">
+            {phases.map((phase, index) => {
+              const style =
+                ROADMAP_PHASE_STYLES[
+                  Math.min(index, ROADMAP_PHASE_STYLES.length - 1)
+                ];
+              const PhaseIcon = style.icon;
+              const phaseNumber = phase.phase ?? index + 1;
+              const phaseSkills = Array.isArray(phase.skills)
+                ? phase.skills
+                : [];
 
-              <p className="mt-1 text-sm font-medium text-zinc-100">
-                {phase.title}
-              </p>
+              return (
+                <li key={phase.phase ?? index} className="relative">
+                  {index < phases.length - 1 && (
+                    <div
+                      aria-hidden="true"
+                      className="absolute bottom-[-13px] left-[19px] top-12 w-px bg-gradient-to-b from-white/15 to-white/[0.03]"
+                    />
+                  )}
 
-              {!!phase.skills?.length && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {phase.skills.map((skill) => (
-                    <SkillTag key={skill} missing>
-                      {formatSkill(skill)}
-                    </SkillTag>
-                  ))}
-                </div>
-              )}
+                  <article
+                    className={`relative rounded-2xl border border-white/10 bg-white/[0.025] p-4 transition-colors hover:border-white/20 hover:bg-white/[0.04]`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${style.surface}`}
+                      >
+                        <PhaseIcon size={18} className={style.color} />
+                      </div>
 
-              {phase.milestone && (
-                <p className="mt-2 text-xs leading-5 text-zinc-400">
-                  <span className="text-zinc-500">Milestone: </span>
-                  {phase.milestone}
-                </p>
-              )}
-            </li>
-          ))}
-        </ol>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                            Phase {phaseNumber}
+                          </span>
+
+                          {phase.duration_weeks != null && (
+                            <Badge
+                              variant="outline"
+                              className="h-5 border-white/10 bg-white/[0.03] px-1.5 text-[10px] font-normal text-zinc-400"
+                            >
+                              <Clock3 size={10} className="mr-1" />
+                              {phase.duration_weeks}{" "}
+                              {Number(phase.duration_weeks) === 1
+                                ? "week"
+                                : "weeks"}
+                            </Badge>
+                          )}
+                        </div>
+
+                        <h5 className="mt-1 text-sm font-semibold leading-5 text-zinc-100">
+                          {phase.title || `Learning phase ${phaseNumber}`}
+                        </h5>
+
+                        {phaseSkills.length > 0 && (
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {phaseSkills.map((skill) => (
+                              <SkillTag key={skill} missing>
+                                {formatSkill(skill)}
+                              </SkillTag>
+                            ))}
+                          </div>
+                        )}
+
+                        {phase.milestone && (
+                          <div className="mt-4 rounded-xl border border-white/[0.07] bg-black/20 p-3">
+                            <div className="flex items-start gap-2">
+                              <CheckCircle2
+                                size={15}
+                                className="mt-0.5 shrink-0 text-emerald-300/80"
+                              />
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-200/70">
+                                  Deliverable
+                                </p>
+                                <p className="mt-1 text-xs leading-5 text-zinc-300">
+                                  {phase.milestone}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </article>
+                </li>
+              );
+            })}
+          </ol>
+        ) : (
+          <div className={`rounded-xl p-4 text-xs text-zinc-500 ${GLASS}`}>
+            No phases were returned for this roadmap.
+          </div>
+        )}
       </section>
 
+      {/* Resource guidance */}
       {roadmap.resource_guidance && (
-        <section>
-          <h4 className="mb-2 text-sm font-medium text-zinc-200">
-            Resources
-          </h4>
-          <p className="text-xs leading-5 text-zinc-400">
-            {roadmap.resource_guidance}
-          </p>
+        <section className={`rounded-xl p-4 ${GLASS}`}>
+          <div className="flex items-start gap-3">
+            <BookOpen size={16} className="mt-0.5 shrink-0 text-indigo-200" />
+            <div>
+              <h4 className="text-sm font-medium text-zinc-100">
+                Resource strategy
+              </h4>
+              <p className="mt-1 text-xs leading-5 text-zinc-400">
+                {roadmap.resource_guidance}
+              </p>
+            </div>
+          </div>
         </section>
       )}
 
-      <p className="text-xs leading-5 text-zinc-500">
+      <p className="text-[11px] leading-5 text-zinc-500">
         {roadmap.note ||
           "This is an illustrative plan. Adjust it as your progress changes."}
       </p>
@@ -607,7 +793,7 @@ const ChatInput = memo(function ChatInput({ onSend, disabled }) {
 });
 
 /* -------------------------------------------------------------------------- */
-/*  Profile setup                                                             */
+/* Profile setup                                                              */
 /* -------------------------------------------------------------------------- */
 
 function ProfileForm({ initialProfile, onSubmit, onCancel, submitting }) {
@@ -790,7 +976,7 @@ function ProfileForm({ initialProfile, onSubmit, onCancel, submitting }) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  App                                                                       */
+/* App                                                                        */
 /* -------------------------------------------------------------------------- */
 
 export default function App() {
@@ -813,6 +999,7 @@ export default function App() {
   const [conversations, setConversations] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
+  const [deletingConversationId, setDeletingConversationId] = useState(null);
   const [activeConversationId, setActiveConversationIdState] = useState(
     () => getActiveConversationId(),
   );
@@ -855,7 +1042,7 @@ export default function App() {
   }
 
   async function handleLoadConversation(conversation) {
-    if (!conversation?.id) return;
+    if (!conversation?.id || historyLoading || deletingConversationId) return;
 
     setHistoryLoading(true);
     setHistoryError("");
@@ -877,11 +1064,48 @@ export default function App() {
       setHistoryOpen(false);
       setScreen("chat");
     } catch (err) {
-      setHistoryError(
-        err.message || "Couldn't load this conversation.",
-      );
+      setHistoryError(err.message || "Couldn't load this conversation.");
     } finally {
       setHistoryLoading(false);
+    }
+  }
+
+  async function handleDeleteConversation(conversation) {
+    if (!conversation?.id || historyLoading || deletingConversationId) return;
+
+    const title =
+      conversation.title && conversation.title !== "New conversation"
+        ? conversation.title
+        : "this conversation";
+
+    const confirmed = window.confirm(
+      `Delete "${title}"?\n\nThis will permanently delete the conversation and its saved messages.`,
+    );
+
+    if (!confirmed) return;
+
+    setDeletingConversationId(conversation.id);
+    setHistoryError("");
+
+    try {
+      await deleteConversation(conversation.id);
+
+      setConversations((previous) =>
+        previous.filter((item) => item.id !== conversation.id),
+      );
+
+      // Deleting the active conversation should leave the user in a clean chat.
+      if (activeConversationId === conversation.id) {
+        startNewConversation();
+        setActiveConversationIdState(null);
+        setMessages([]);
+      }
+    } catch (err) {
+      setHistoryError(
+        err.message || "Couldn't delete this conversation. Please try again.",
+      );
+    } finally {
+      setDeletingConversationId(null);
     }
   }
 
@@ -987,7 +1211,6 @@ export default function App() {
       const reply = await sendChatMessage(message, profile);
       addMessage("assistant", reply);
 
-      // The backend may create a conversation on the first message.
       setActiveConversationIdState(getActiveConversationId());
 
       // Refresh the sidebar after the message has been saved.
@@ -1323,46 +1546,88 @@ export default function App() {
                   </div>
                 )}
 
-              {conversations.map((conversation) => (
-                <button
-                  key={conversation.id}
-                  type="button"
-                  disabled={historyLoading}
-                  onClick={() => handleLoadConversation(conversation)}
-                  className={`w-full rounded-xl border p-3 text-left transition-colors disabled:opacity-50 ${
-                    activeConversationId === conversation.id
-                      ? "border-indigo-400/30 bg-indigo-500/10"
-                      : "border-white/10 bg-white/[0.02] hover:bg-white/[0.06]"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <History
-                      size={16}
-                      className="mt-0.5 shrink-0 text-indigo-300"
-                    />
+              {conversations.map((conversation) => {
+                const isDeleting =
+                  deletingConversationId === conversation.id;
+                const isActive =
+                  activeConversationId === conversation.id;
 
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-zinc-200">
-                        {conversation.title &&
-                        conversation.title !== "New conversation"
-                          ? conversation.title
-                          : "Conversation"}
-                      </p>
+                return (
+                  <div
+                    key={conversation.id}
+                    className={`flex items-stretch gap-1 rounded-xl border p-2 transition-colors ${
+                      isActive
+                        ? "border-indigo-400/30 bg-indigo-500/10"
+                        : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      disabled={
+                        historyLoading ||
+                        Boolean(deletingConversationId) ||
+                        chatBusy
+                      }
+                      onClick={() => handleLoadConversation(conversation)}
+                      className="flex min-w-0 flex-1 items-start gap-3 rounded-lg p-1 text-left disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <History
+                        size={16}
+                        className="mt-0.5 shrink-0 text-indigo-300"
+                      />
 
-                      <p className="mt-1 text-xs text-zinc-500">
-                        {conversation.updated_at
-                          ? new Date(
-                              conversation.updated_at,
-                            ).toLocaleString([], {
-                              dateStyle: "medium",
-                              timeStyle: "short",
-                            })
-                          : "Saved conversation"}
-                      </p>
-                    </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-zinc-200">
+                          {conversation.title &&
+                          conversation.title !== "New conversation"
+                            ? conversation.title
+                            : "Conversation"}
+                        </p>
+
+                        <p className="mt-1 text-xs text-zinc-500">
+                          {conversation.updated_at
+                            ? new Date(
+                                conversation.updated_at,
+                              ).toLocaleString([], {
+                                dateStyle: "medium",
+                                timeStyle: "short",
+                              })
+                            : "Saved conversation"}
+                        </p>
+                      </div>
+                    </button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      disabled={
+                        historyLoading ||
+                        Boolean(deletingConversationId) ||
+                        chatBusy
+                      }
+                      aria-label={`Delete ${
+                        conversation.title || "conversation"
+                      }`}
+                      title="Delete conversation"
+                      onClick={() => handleDeleteConversation(conversation)}
+                      className="h-9 w-9 shrink-0 self-center text-zinc-500 hover:bg-rose-500/10 hover:text-rose-300 disabled:opacity-40"
+                    >
+                      {isDeleting ? (
+                        <LoaderCircle size={15} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={15} />
+                      )}
+                    </Button>
                   </div>
-                </button>
-              ))}
+                );
+              })}
+            </div>
+
+            <div className="border-t border-white/10 px-4 py-3">
+              <p className="text-[11px] leading-5 text-zinc-600">
+                Deleting a conversation permanently removes its saved messages.
+              </p>
             </div>
           </SheetContent>
         </Sheet>

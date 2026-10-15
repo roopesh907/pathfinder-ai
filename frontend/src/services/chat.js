@@ -13,7 +13,7 @@ async function requestJson(url, options = {}) {
     response = await fetch(url, options);
   } catch {
     throw new Error(
-      "Could not reach the server. Check your internet connection and try again."
+      "Could not reach the server. Check your internet connection and try again.",
     );
   }
 
@@ -100,7 +100,7 @@ export async function getConversations() {
   const sessionId = getOrCreateSessionId();
 
   const data = await requestJson(
-    `${API_BASE}/api/conversations?session_id=${encodeURIComponent(sessionId)}`
+    `${API_BASE}/api/conversations?session_id=${encodeURIComponent(sessionId)}`,
   );
 
   return Array.isArray(data?.conversations) ? data.conversations : [];
@@ -115,11 +115,39 @@ export async function getConversationMessages(conversationId) {
 
   const data = await requestJson(
     `${API_BASE}/api/conversations/${encodeURIComponent(
-      conversationId
-    )}/messages?session_id=${encodeURIComponent(sessionId)}`
+      conversationId,
+    )}/messages?session_id=${encodeURIComponent(sessionId)}`,
   );
 
   return Array.isArray(data?.messages) ? data.messages : [];
+}
+
+export async function deleteConversation(conversationId) {
+  if (!conversationId) {
+    throw new Error("A conversation ID is required.");
+  }
+
+  const sessionId = getOrCreateSessionId();
+
+  const data = await requestJson(
+    `${API_BASE}/api/conversations/${encodeURIComponent(
+      conversationId,
+    )}?session_id=${encodeURIComponent(sessionId)}`,
+    {
+      method: "DELETE",
+    },
+  );
+
+  if (data?.deleted !== true) {
+    throw new Error("The conversation could not be deleted.");
+  }
+
+  // Clear the stored selection only if this was the active conversation.
+  if (getActiveConversationId() === conversationId) {
+    setActiveConversationId(null);
+  }
+
+  return true;
 }
 
 export function startNewConversation() {
