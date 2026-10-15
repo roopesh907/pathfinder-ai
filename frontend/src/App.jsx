@@ -105,6 +105,49 @@ export default function App() {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const isChat = screen === "chat";
 
+  function handleNavigate(href) {
+    if (href === "/" || href === "/onboarding") {
+      setScreen("onboarding");
+      setWorkspaceOpen(false);
+      return;
+    }
+
+    if (href === "/dashboard") {
+      setScreen("chat");
+      setWorkspaceOpen(true);
+      setActiveTab("mission");
+      return;
+    }
+
+    if (href === "/careers") {
+      setScreen("chat");
+      setWorkspaceOpen(true);
+      setActiveTab("careers");
+      return;
+    }
+
+    if (href === "/roadmap") {
+      setScreen("chat");
+      setWorkspaceOpen(true);
+      setActiveTab("roadmap");
+      return;
+    }
+
+    if (href === "/#explore" || href === "/#how-it-works") {
+      setScreen("onboarding");
+      setWorkspaceOpen(false);
+
+      const id = href.endsWith("#explore") ? "explore" : "how-it-works";
+
+      requestAnimationFrame(() => {
+        document.getElementById(id)?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    }
+  }
+
   function addMessage(role, content) {
     setMessages((previous) => [
       ...previous,
@@ -373,13 +416,15 @@ export default function App() {
       roadmap={roadmap}
       roadmapBusy={roadmapBusy}
       roadmapError={roadmapError}
-      missionContent={<MissionControl
-      roadmap={roadmap}
-      loading={roadmapBusy}
-      error={roadmapError}
-      recommendations={recommendations}
-      onChooseCareer={handleRoadmap}
-    />}
+      missionContent={
+        <MissionControl
+          roadmap={roadmap}
+          loading={roadmapBusy}
+          error={roadmapError}
+          recommendations={recommendations}
+          onChooseCareer={handleRoadmap}
+        />
+      }
     />
   );
 
@@ -407,8 +452,8 @@ export default function App() {
         }
         ctaLabel={isChat ? "Edit profile" : "Find my path"}
         ctaHref={isChat ? "/onboarding" : "/dashboard"}
+        onNavigate={handleNavigate}
       />
-
       {isChat && (
         <div className="relative z-20 flex items-center justify-end gap-2 border-b border-white/[0.06] bg-zinc-950/60 px-4 py-2 sm:px-6">
           <Button
