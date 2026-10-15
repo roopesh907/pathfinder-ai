@@ -12,7 +12,7 @@ function WorkspaceContent({
   roadmap,
   roadmapBusy,
   roadmapError,
-  missionContent = ,
+  missionContent ,
 }) {
   return (
     <Tabs
