@@ -447,7 +447,7 @@ export default function App() {
             : [
                 { label: "Explore", href: "/#explore" },
                 { label: "Career paths", href: "/careers" },
-                { label: "How it works", href: "/#how-it-works" },
+                
               ]
         }
         ctaLabel={isChat ? "Edit profile" : "Find my path"}
