@@ -46,6 +46,22 @@ function makeTasks(roadmap) {
   });
 }
 
+function formatDuration(minutes) {
+  const totalMinutes = Math.max(0, Math.round(Number(minutes) || 0));
+
+  if (totalMinutes < 60) {
+    return `${totalMinutes} min`;
+  }
+
+  const hours = Math.floor(totalMinutes / 60);
+  const remainingMinutes = totalMinutes % 60;
+  const hourLabel = hours === 1 ? "hr" : "hrs";
+
+  return remainingMinutes > 0
+    ? `${hours} ${hourLabel} ${remainingMinutes} min`
+    : `${hours} ${hourLabel}`;
+}
+
 function readProgress(storageKey, taskIds) {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey) || "{}");
@@ -240,7 +256,7 @@ export default function MissionControl({
       `Description: ${mentorTask.description}`,
       `Skills: ${mentorTask.skills.join(", ") || "Not specified"}`,
       `Milestone: ${mentorTask.milestone || "Not specified"}`,
-      `Estimated time: ${mentorTask.estimatedMinutes} minutes`,
+      `Estimated time: ${formatDuration(mentorTask.estimatedMinutes)}`,
       "",
       `Learner's question: ${text}`,
     ].join("\n");
@@ -610,7 +626,7 @@ export default function MissionControl({
 
               <div className="mt-4 flex items-center gap-2 text-xs text-zinc-500">
                 <Clock3 size={14} />
-                Approximately {activeTask.estimatedMinutes} minutes
+                Estimated time: {formatDuration(activeTask.estimatedMinutes)}
               </div>
             </div>
           </div>
@@ -721,7 +737,7 @@ export default function MissionControl({
                   </div>
 
                   <p className="mt-1 text-xs text-zinc-500">
-                    Phase {task.phase} · {task.estimatedMinutes} minutes
+                   Phase {task.phase} · {formatDuration(task.estimatedMinutes)}
                   </p>
                 </div>
 
