@@ -66,15 +66,10 @@ const MAX_WORKSPACE_WIDTH = 720;
 function clampWorkspaceWidth(width) {
   const maxWidth = Math.max(
     MIN_WORKSPACE_WIDTH,
-    Math.min(
-      MAX_WORKSPACE_WIDTH,
-      window.innerWidth - MIN_CHAT_WIDTH,
-    ),
+    Math.min(MAX_WORKSPACE_WIDTH, window.innerWidth - MIN_CHAT_WIDTH),
   );
 
-  return Math.round(
-    Math.max(MIN_WORKSPACE_WIDTH, Math.min(maxWidth, width)),
-  );
+  return Math.round(Math.max(MIN_WORKSPACE_WIDTH, Math.min(maxWidth, width)));
 }
 
 function useMediaQuery(query) {
@@ -112,9 +107,7 @@ export default function App() {
   const [roadmapError, setRoadmapError] = useState("");
 
   // Desktop workspace resizing.
-  const [workspaceWidth, setWorkspaceWidth] = useState(
-    DEFAULT_WORKSPACE_WIDTH,
-  );
+  const [workspaceWidth, setWorkspaceWidth] = useState(DEFAULT_WORKSPACE_WIDTH);
   const [isResizingWorkspace, setIsResizingWorkspace] = useState(false);
   const resizeOrigin = useRef(null);
 
@@ -145,9 +138,7 @@ export default function App() {
       // The workspace is attached to the right edge. Moving its divider
       // left increases workspace width; moving right decreases it.
       setWorkspaceWidth(
-        clampWorkspaceWidth(
-          initialWidth + pointerX - event.clientX,
-        ),
+        clampWorkspaceWidth(initialWidth + pointerX - event.clientX),
       );
     };
 
@@ -213,14 +204,10 @@ export default function App() {
 
     if (event.key === "ArrowLeft") {
       event.preventDefault();
-      setWorkspaceWidth((width) =>
-        clampWorkspaceWidth(width + step),
-      );
+      setWorkspaceWidth((width) => clampWorkspaceWidth(width + step));
     } else if (event.key === "ArrowRight") {
       event.preventDefault();
-      setWorkspaceWidth((width) =>
-        clampWorkspaceWidth(width - step),
-      );
+      setWorkspaceWidth((width) => clampWorkspaceWidth(width - step));
     } else if (event.key === "Home") {
       event.preventDefault();
       setWorkspaceWidth(MIN_WORKSPACE_WIDTH);
@@ -264,10 +251,20 @@ export default function App() {
 
       const id = href.endsWith("#explore") ? "explore" : "how-it-works";
 
+      // Wait for the onboarding view to render before scrolling.
       requestAnimationFrame(() => {
-        document.getElementById(id)?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
+        requestAnimationFrame(() => {
+          const section = document.getElementById(id);
+          if (!section) return;
+
+          const reduceMotion = window.matchMedia(
+            "(prefers-reduced-motion: reduce)",
+          ).matches;
+
+          section.scrollIntoView({
+            behavior: reduceMotion ? "auto" : "smooth",
+            block: "start",
+          });
         });
       });
     }
