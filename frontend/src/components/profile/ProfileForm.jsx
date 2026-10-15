@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 
 import { Label } from "@/components/ui/label";
@@ -18,10 +17,7 @@ import {
   INTEREST_OPTIONS,
   SKILL_OPTIONS,
 } from "../../constants/profile";
-import {
-  formatRupees,
-  formatSkill,
-} from "../../utils/formatters";
+import { formatRupees, formatSkill } from "../../utils/formatters";
 
 export default function ProfileForm({
   initialProfile,
@@ -129,15 +125,13 @@ export default function ProfileForm({
       </section>
 
       <section className={`space-y-3 rounded-xl p-5 ${GLASS}`}>
-        <Label className="text-sm font-medium text-zinc-200">
-          Interests
-        </Label>
+        <Label className="text-sm font-medium text-zinc-200">Interests</Label>
 
         <div className="flex flex-wrap gap-2">
           {INTEREST_OPTIONS.map((interest) => (
             <Chip
               key={interest}
-              active={draft.interests.includes(interest)}
+              selected={draft.interests.includes(interest)}
               onClick={() => toggle("interests", interest)}
             >
               {formatSkill(interest)}
@@ -146,9 +140,7 @@ export default function ProfileForm({
         </div>
 
         {draft.interests.length === 0 && (
-          <p className="text-xs text-rose-300">
-            Select at least one interest.
-          </p>
+          <p className="text-xs text-rose-300">Select at least one interest.</p>
         )}
       </section>
 
@@ -161,7 +153,7 @@ export default function ProfileForm({
           {SKILL_OPTIONS.map((skill) => (
             <Chip
               key={skill}
-              active={draft.skills.includes(skill)}
+              selected={draft.skills.includes(skill)}
               onClick={() => toggle("skills", skill)}
             >
               {formatSkill(skill)}
@@ -171,12 +163,8 @@ export default function ProfileForm({
       </section>
 
       <section className={`space-y-3 rounded-xl p-5 ${GLASS}`}>
-        <Label
-          htmlFor="goal"
-          className="text-sm font-medium text-zinc-200"
-        >
-          Goal{" "}
-          <span className="font-normal text-zinc-500">(optional)</span>
+        <Label htmlFor="goal" className="text-sm font-medium text-zinc-200">
+          Goal <span className="font-normal text-zinc-500">(optional)</span>
         </Label>
 
         <Textarea
@@ -211,9 +199,7 @@ export default function ProfileForm({
           disabled={!canSubmit}
           className="bg-indigo-500 text-white hover:bg-indigo-400 disabled:opacity-40"
         >
-          {submitting && (
-            <LoaderCircle className="animate-spin" size={15} />
-          )}
+          {submitting && <LoaderCircle className="animate-spin" size={15} />}
 
           {onCancel ? "Save and refresh matches" : "Continue"}
 
