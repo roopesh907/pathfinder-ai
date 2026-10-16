@@ -88,3 +88,49 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+@theme {
+  --font-sans: "Inter", sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+}
+
+
+/* PathFinder AI — custom scrollbar */
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(129, 140, 248, 0.38)
+    rgba(255, 255, 255, 0.025);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(129, 140, 248, 0.35);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(165, 180, 252, 0.7);
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+
+.custom-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    transition: background-color 180ms ease;
+  }
+}

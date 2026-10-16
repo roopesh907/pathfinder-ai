@@ -20,7 +20,7 @@ const USER_MESSAGE_CLASSES = [
 
 const ASSISTANT_MESSAGE_CLASSES = [
   "w-full min-w-0 break-words",
-  "text-sm font-normal leading-7 text-zinc-300",
+  "text-sm font-normal leading-7 text-zinc-400",
 
   // Softer opening paragraph
   "[&>p:first-child]:text-zinc-400",

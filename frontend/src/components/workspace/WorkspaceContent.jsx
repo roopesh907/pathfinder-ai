@@ -80,7 +80,7 @@ function WorkspaceContent({
     <Tabs
       value={activeTab}
       onValueChange={setActiveTab}
-      className="flex min-h-0 flex-1 flex-col gap-0"
+      className="custom-scrollbar flex min-h-0 flex-1 flex-col gap-0"
     >
       {/* Workspace header and navigation */}
       <div className="border-b border-white/[0.06] px-4 pb-3 pt-4">
@@ -142,7 +142,7 @@ function WorkspaceContent({
       {/* Mission tab */}
       <TabsContent
         value="mission"
-        className="min-h-0 flex-1 overflow-y-auto p-4 pt-4"
+        className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-4 pt-4"
       >
         {missionContent || (
           <WorkspaceEmptyState
@@ -317,7 +317,7 @@ function WorkspaceContent({
       {/* Roadmap tab */}
       <TabsContent
         value="roadmap"
-        className="min-h-0 flex-1 overflow-y-auto p-4 pt-4"
+        className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-4 pt-4"
       >
         <RoadmapView
           roadmap={roadmap}
