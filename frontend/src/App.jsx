@@ -601,6 +601,7 @@ export default function App() {
         roadmap={roadmap}
         roadmapBusy={roadmapBusy}
         roadmapError={roadmapError}
+        matchBusy={matchBusy}
         missionContent={
           <MissionControl
             roadmap={roadmap}

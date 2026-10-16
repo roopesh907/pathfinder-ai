@@ -5,6 +5,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+
 import {
   ArrowUpRight,
   BriefcaseBusiness,
@@ -68,9 +69,12 @@ function WorkspaceContent({
   roadmap,
   roadmapBusy,
   roadmapError,
+  matchBusy = false,
   missionContent,
 }) {
-  const hasRecommendations = recommendations.length > 0;
+  const hasRecommendations =
+    Array.isArray(recommendations) &&
+    recommendations.length > 0;
 
   return (
     <Tabs
@@ -78,12 +82,14 @@ function WorkspaceContent({
       onValueChange={setActiveTab}
       className="flex min-h-0 flex-1 flex-col gap-0"
     >
+      {/* Workspace header and navigation */}
       <div className="border-b border-white/[0.06] px-4 pb-3 pt-4">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-indigo-300/80">
               Your workspace
             </p>
+
             <h2 className="mt-1 text-sm font-semibold tracking-tight text-zinc-100">
               Career command center
             </h2>
@@ -115,6 +121,7 @@ function WorkspaceContent({
           >
             <BriefcaseBusiness size={13} aria-hidden="true" />
             Matches
+
             {hasRecommendations && (
               <span className="ml-0.5 rounded-md bg-white/[0.07] px-1.5 py-0.5 text-[10px] tabular-nums">
                 {recommendations.length}
@@ -132,6 +139,7 @@ function WorkspaceContent({
         </TabsList>
       </div>
 
+      {/* Mission tab */}
       <TabsContent
         value="mission"
         className="min-h-0 flex-1 overflow-y-auto p-4 pt-4"
@@ -147,12 +155,14 @@ function WorkspaceContent({
         )}
       </TabsContent>
 
+      {/* Career matches tab */}
       <TabsContent
         value="careers"
         className="min-h-0 flex-1 overflow-y-auto p-4 pt-4"
       >
         {hasRecommendations ? (
           <div className="space-y-4">
+            {/* Matches overview */}
             <section className="relative overflow-hidden rounded-2xl border border-indigo-300/[0.13] bg-gradient-to-br from-indigo-400/[0.08] via-white/[0.025] to-violet-400/[0.04] p-4">
               <div className="pointer-events-none absolute -right-10 -top-12 size-32 rounded-full bg-indigo-500/[0.08] blur-3xl" />
 
@@ -180,9 +190,9 @@ function WorkspaceContent({
                   </div>
 
                   <p className="mt-1.5 text-xs leading-5 text-zinc-400">
-                    Explore how your skills, interests, and goals
-                    align with each path. Every missing skill is
-                    an opportunity to learn.
+                    Explore how your skills and interests align
+                    with each path. Every missing skill is an
+                    opportunity to learn.
                   </p>
                 </div>
               </div>
@@ -193,23 +203,28 @@ function WorkspaceContent({
                   className="mt-0.5 shrink-0 text-emerald-300/80"
                   aria-hidden="true"
                 />
+
                 <p className="text-[10px] leading-5 text-zinc-500">
-                  Match scores are heuristic indicators based on
-                  your profile and career catalog—not predictions
-                  of aptitude, employment, or future success.
+                  Match scores are heuristic indicators based
+                  on your profile and career catalog—not
+                  predictions of aptitude, employment, or
+                  future success.
                 </p>
               </div>
             </section>
 
+            {/* Ranking labels */}
             <div className="flex items-center justify-between gap-3 px-0.5">
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
                 Ranked career paths
               </p>
+
               <p className="text-[10px] text-zinc-600">
                 Highest match first
               </p>
             </div>
 
+            {/* Career cards */}
             <div className="space-y-5">
               {recommendations.map((career, index) => {
                 const careerKey =
@@ -278,15 +293,28 @@ function WorkspaceContent({
           </div>
         ) : (
           <WorkspaceEmptyState
-            icon={BriefcaseBusiness}
-            title="Your matches are waiting"
-            description="Complete your profile to discover career paths aligned with your skills, interests, and goals."
-            actionLabel="Back to mission"
-            onAction={() => setActiveTab("mission")}
+            icon={matchBusy ? Sparkles : BriefcaseBusiness}
+            title={
+              matchBusy
+                ? "Finding your career matches..."
+                : "Your matches are waiting"
+            }
+            description={
+              matchBusy
+                ? "Comparing your skills and interests with available career paths. Your results will appear here shortly."
+                : "Complete your profile to discover career paths aligned with your skills and interests."
+            }
+            actionLabel={matchBusy ? undefined : "Back to mission"}
+            onAction={
+              matchBusy
+                ? undefined
+                : () => setActiveTab("mission")
+            }
           />
         )}
       </TabsContent>
 
+      {/* Roadmap tab */}
       <TabsContent
         value="roadmap"
         className="min-h-0 flex-1 overflow-y-auto p-4 pt-4"
