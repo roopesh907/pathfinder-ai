@@ -98,8 +98,7 @@ body {
 
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(129, 140, 248, 0.38)
-    rgba(255, 255, 255, 0.025);
+  scrollbar-color: #6366f1 transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -108,25 +107,16 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.025);
-  border-radius: 999px;
+  background: transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(129, 140, 248, 0.35);
-  border: 2px solid transparent;
-  background-clip: padding-box;
+  background: rgba(129, 140, 248, 0.45);
   border-radius: 999px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(165, 180, 252, 0.7);
-  border: 1px solid transparent;
-  background-clip: padding-box;
-}
-
-.custom-scrollbar::-webkit-scrollbar-corner {
-  background: transparent;
+  background: rgba(165, 180, 252, 0.85);
 }
 
 @media (prefers-reduced-motion: no-preference) {
