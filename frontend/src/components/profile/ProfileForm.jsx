@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -13,6 +14,7 @@ import {
   INTEREST_OPTIONS,
   SKILL_OPTIONS,
 } from "@/constants/profile";
+
 import { formatRupees, formatSkill } from "@/utils/formatters";
 
 function CustomOption({ value, onRemove }) {
@@ -32,35 +34,54 @@ function CustomOption({ value, onRemove }) {
   );
 }
 
-function CustomOptionEditor({ label, value, onChange, onAdd, onCancel }) {
-  return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault();
+function CustomOptionEditor({
+  label,
+  value,
+  onChange,
+  onAdd,
+  onCancel,
+}) {
+  function handleKeyDown(event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (value.trim()) {
         onAdd();
-      }}
-      className="mt-3 flex flex-wrap items-center gap-2"
-    >
+      }
+    }
+  }
+
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2">
       <input
         autoFocus
         aria-label={label}
         type="text"
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        onKeyDown={handleKeyDown}
         placeholder={`Enter ${label.toLowerCase()}...`}
         maxLength={60}
         className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-violet-400/60 focus:ring-2 focus:ring-violet-400/10"
       />
 
-      <Button
-        type="submit"
-        size="sm"
+      <button
+        type="button"
         disabled={!value.trim()}
-        className="gap-1.5 rounded-xl bg-violet-500 text-white hover:bg-violet-400"
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+
+          if (value.trim()) {
+            onAdd();
+          }
+        }}
+        className="inline-flex items-center gap-1.5 rounded-xl bg-violet-500 px-3 py-2 text-sm text-white transition hover:bg-violet-400 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <Plus size={14} />
         Add
-      </Button>
+      </button>
 
       <Button
         type="button"
@@ -71,7 +92,7 @@ function CustomOptionEditor({ label, value, onChange, onAdd, onCancel }) {
       >
         Cancel
       </Button>
-    </form>
+    </div>
   );
 }
 
@@ -126,7 +147,8 @@ export default function ProfileForm({
       const existing = current[key] ?? [];
 
       const alreadyExists = existing.some(
-        (item) => item.toLowerCase() === cleanedValue.toLowerCase(),
+        (item) =>
+          item.toLowerCase() === cleanedValue.toLowerCase(),
       );
 
       if (alreadyExists) {
@@ -146,7 +168,9 @@ export default function ProfileForm({
   function removeCustomOption(key, value) {
     setDraft((current) => ({
       ...current,
-      [key]: (current[key] ?? []).filter((item) => item !== value),
+      [key]: (current[key] ?? []).filter(
+        (item) => item !== value,
+      ),
     }));
   }
 
@@ -167,7 +191,10 @@ export default function ProfileForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex min-h-0 flex-col">
+    <form
+      onSubmit={handleSubmit}
+      className="flex min-h-0 flex-col"
+    >
       <div className="space-y-8">
         {/* Weekly learning time */}
         <section className="space-y-4">
@@ -192,7 +219,9 @@ export default function ProfileForm({
             min={1}
             max={40}
             step={1}
-            onValueChange={(value) => updateField("weekly_hours", value[0])}
+            onValueChange={(value) =>
+              updateField("weekly_hours", value[0])
+            }
             aria-label="Weekly learning hours"
           />
 
@@ -227,7 +256,9 @@ export default function ProfileForm({
             min={0}
             max={5000}
             step={100}
-            onValueChange={(value) => updateField("monthly_budget", value[0])}
+            onValueChange={(value) =>
+              updateField("monthly_budget", value[0])
+            }
             aria-label="Monthly learning budget in rupees"
           />
 
@@ -261,7 +292,9 @@ export default function ProfileForm({
                 key={option}
                 label={option}
                 selected={draft.education_level === option}
-                onClick={() => updateField("education_level", option)}
+                onClick={() =>
+                  updateField("education_level", option)
+                }
               />
             ))}
           </div>
@@ -298,17 +331,22 @@ export default function ProfileForm({
             ))}
           </div>
 
-          {draft.interests.filter(
+          {draft.interests.some(
             (interest) => !INTEREST_OPTIONS.includes(interest),
-          ).length > 0 && (
+          ) && (
             <div className="flex flex-wrap gap-2">
               {draft.interests
-                .filter((interest) => !INTEREST_OPTIONS.includes(interest))
+                .filter(
+                  (interest) =>
+                    !INTEREST_OPTIONS.includes(interest),
+                )
                 .map((interest) => (
                   <CustomOption
                     key={interest}
                     value={interest}
-                    onRemove={() => removeCustomOption("interests", interest)}
+                    onRemove={() =>
+                      removeCustomOption("interests", interest)
+                    }
                   />
                 ))}
             </div>
@@ -345,7 +383,8 @@ export default function ProfileForm({
 
           {draft.interests.length === 0 && (
             <p className="text-sm text-amber-300">
-              Select at least one interest to get career recommendations.
+              Select at least one interest to get career
+              recommendations.
             </p>
           )}
         </section>
@@ -381,76 +420,44 @@ export default function ProfileForm({
             ))}
           </div>
 
-          {draft.skills.filter((skill) => !SKILL_OPTIONS.includes(skill))
-            .length > 0 && (
+          {draft.skills.some(
+            (skill) => !SKILL_OPTIONS.includes(skill),
+          ) && (
             <div className="flex flex-wrap gap-2">
               {draft.skills
-                .filter((skill) => !SKILL_OPTIONS.includes(skill))
+                .filter(
+                  (skill) => !SKILL_OPTIONS.includes(skill),
+                )
                 .map((skill) => (
                   <CustomOption
                     key={skill}
                     value={skill}
-                    onRemove={() => removeCustomOption("skills", skill)}
+                    onRemove={() =>
+                      removeCustomOption("skills", skill)
+                    }
                   />
                 ))}
             </div>
           )}
 
           {showSkillEditor ? (
-            function CustomOptionEditor({
-              label,
-              value,
-              onChange,
-              onAdd,
-              onCancel,
-            }) {
-              function handleKeyDown(event) {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-
-                  if (value.trim()) {
-                    onAdd();
-                  }
-                }
+            <CustomOptionEditor
+              label="Skill"
+              value={customSkill}
+              onChange={setCustomSkill}
+              onAdd={() =>
+                addCustomOption(
+                  "skills",
+                  customSkill,
+                  setCustomSkill,
+                  setShowSkillEditor,
+                )
               }
-
-              return (
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <input
-                    autoFocus
-                    aria-label={label}
-                    type="text"
-                    value={value}
-                    onChange={(event) => onChange(event.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder={`Enter ${label.toLowerCase()}...`}
-                    maxLength={60}
-                    className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-violet-400/60 focus:ring-2 focus:ring-violet-400/10"
-                  />
-
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={!value.trim()}
-                    onClick={onAdd}
-                    className="gap-1.5 rounded-xl bg-violet-500 text-white hover:bg-violet-400"
-                  >
-                    <Plus size={14} />
-                    Add
-                  </Button>
-
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={onCancel}
-                    className="rounded-xl text-slate-400 hover:text-white"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              );
-            }
+              onCancel={() => {
+                setCustomSkill("");
+                setShowSkillEditor(false);
+              }}
+            />
           ) : (
             <button
               type="button"
