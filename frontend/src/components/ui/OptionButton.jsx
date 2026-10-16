@@ -1,4 +1,4 @@
-export function OptionButton({ active, onClick, children }) {
+export default function OptionButton({ active, onClick, children }) {
   return (
     <button
       type="button"
