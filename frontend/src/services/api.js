@@ -1,6 +1,5 @@
 const API_BASE_URL = (
-  import.meta.env.VITE_API_URL ||
-  "https://pathfinder-ai-omoc.onrender.com"
+  import.meta.env.VITE_API_URL || "https://pathfinder-ai-omoc.onrender.com"
 ).replace(/\/+$/, "");
 
 async function apiRequest(endpoint, options = {}) {
@@ -14,9 +13,12 @@ async function apiRequest(endpoint, options = {}) {
         ...options.headers,
       },
     });
-  } catch {
+  } catch (error) {
+    if (error?.name === "AbortError") throw error;
+
     throw new Error(
       "Could not reach the backend. Please check your internet connection and try again.",
+      { cause: error },
     );
   }
 
@@ -48,8 +50,8 @@ async function apiRequest(endpoint, options = {}) {
   return data;
 }
 
-export async function testBackendConnection() {
-  return apiRequest("/api/health");
+export async function testBackendConnection(options = {}) {
+  return apiRequest("/api/health", options);
 }
 
 export async function getCareers() {

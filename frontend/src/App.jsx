@@ -35,7 +35,11 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 
-import { matchCareers, generateRoadmap } from "./services/api";
+import {
+  matchCareers,
+  generateRoadmap,
+  testBackendConnection,
+} from "./services/api";
 import {
   sendChatMessage,
   getConversations,
@@ -53,6 +57,7 @@ import MessageBubble from "./components/chat/MessageBubble";
 import WorkspaceContent from "./components/workspace/WorkspaceContent";
 import Navbar from "./components/Navbar";
 import MissionControl from "./components/mission/MissionControl";
+import StartupOverlay from "./components/StartupOverlay";
 
 import { GLASS } from "./constants/styles";
 import { DEFAULT_PROFILE } from "./constants/profile";
@@ -69,6 +74,10 @@ const MIN_WORKSPACE_WIDTH = 320;
 const MIN_CHAT_WIDTH = 360;
 const DEFAULT_WORKSPACE_WIDTH = 440;
 const MAX_WORKSPACE_WIDTH = 720;
+const STARTUP_MAX_WAIT_MS = 120_000;
+const STARTUP_REQUEST_TIMEOUT_MS = 15_000;
+const STARTUP_RETRY_BASE_MS = 1_000;
+const STARTUP_RETRY_MAX_MS = 8_000;
 
 function clampWorkspaceWidth(width) {
   const maxWidth = Math.max(
@@ -120,6 +129,10 @@ function FeatureItem({ icon: Icon, title, description }) {
 
 export default function App() {
   const [screen, setScreen] = useState("onboarding");
+  const [startupState, setStartupState] = useState("checking");
+  const [startupElapsedSeconds, setStartupElapsedSeconds] = useState(0);
+  const [startupRun, setStartupRun] = useState(0);
+  const [startupOverlayVisible, setStartupOverlayVisible] = useState(true);
   const [profile, setProfile] = useState(null);
   const [messages, setMessages] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
@@ -154,6 +167,114 @@ export default function App() {
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const isChat = screen === "chat";
+
+  useEffect(() => {
+    let cancelled = false;
+    let activeController = null;
+    let checkStartTimeout = null;
+    let requestTimeout = null;
+    let retryTimeout = null;
+    let elapsedInterval = null;
+    let completionTimeout = null;
+    let resolveRetry = null;
+
+    const startedAt = Date.now();
+    const deadline = startedAt + STARTUP_MAX_WAIT_MS;
+
+    elapsedInterval = window.setInterval(() => {
+      setStartupElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+
+    const waitBeforeRetry = (delay) =>
+      new Promise((resolve) => {
+        resolveRetry = resolve;
+        retryTimeout = window.setTimeout(() => {
+          retryTimeout = null;
+          resolveRetry = null;
+          resolve();
+        }, delay);
+      });
+
+    async function checkBackend() {
+      let attempt = 0;
+
+      while (!cancelled && Date.now() < deadline) {
+        attempt += 1;
+        const controller = new AbortController();
+        activeController = controller;
+        requestTimeout = window.setTimeout(
+          () => controller.abort(),
+          Math.min(STARTUP_REQUEST_TIMEOUT_MS, deadline - Date.now()),
+        );
+
+        try {
+          const health = await testBackendConnection({
+            signal: controller.signal,
+          });
+
+          if (
+            health?.status !== "healthy" ||
+            health?.service !== "pathfinder-backend"
+          ) {
+            throw new Error(
+              "The health endpoint returned an unexpected response.",
+            );
+          }
+
+          if (cancelled) return;
+
+          window.clearInterval(elapsedInterval);
+          elapsedInterval = null;
+          setStartupElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+          setStartupState("ready");
+          completionTimeout = window.setTimeout(() => {
+            if (!cancelled) setStartupOverlayVisible(false);
+          }, 900);
+          return;
+        } catch {
+          if (cancelled) return;
+        } finally {
+          window.clearTimeout(requestTimeout);
+          requestTimeout = null;
+          if (activeController === controller) activeController = null;
+        }
+
+        if (cancelled) return;
+
+        const remaining = deadline - Date.now();
+        if (remaining <= 0) break;
+
+        const delay = Math.min(
+          STARTUP_RETRY_BASE_MS * 2 ** Math.min(attempt - 1, 3),
+          STARTUP_RETRY_MAX_MS,
+          remaining,
+        );
+
+        await waitBeforeRetry(delay);
+      }
+
+      if (!cancelled) {
+        window.clearInterval(elapsedInterval);
+        elapsedInterval = null;
+        setStartupState("failed");
+      }
+    }
+
+    checkStartTimeout = window.setTimeout(() => {
+      void checkBackend();
+    }, 0);
+
+    return () => {
+      cancelled = true;
+      activeController?.abort();
+      window.clearTimeout(checkStartTimeout);
+      window.clearTimeout(requestTimeout);
+      window.clearTimeout(retryTimeout);
+      window.clearInterval(elapsedInterval);
+      window.clearTimeout(completionTimeout);
+      resolveRetry?.();
+    };
+  }, [startupRun]);
 
   // Follow new messages when the user is already near the bottom.
   useEffect(() => {
@@ -613,6 +734,7 @@ export default function App() {
 
   const page = (
     <main
+      inert={startupOverlayVisible}
       className={
         isChat
           ? "relative z-10 flex h-dvh min-h-0 w-full flex-col overflow-hidden text-zinc-100"
@@ -1196,6 +1318,23 @@ export default function App() {
             {page}
           </BackgroundPaths>
         )}
+
+        <AnimatePresence>
+          {startupOverlayVisible && (
+            <StartupOverlay
+              key="backend-startup"
+              state={startupState}
+              elapsedSeconds={startupElapsedSeconds}
+              onRetry={() => {
+                setStartupOverlayVisible(true);
+                setStartupState("checking");
+                setStartupElapsedSeconds(0);
+                setStartupRun((run) => run + 1);
+              }}
+              onContinue={() => setStartupOverlayVisible(false)}
+            />
+          )}
+        </AnimatePresence>
       </LazyMotion>
     </MotionConfig>
   );
