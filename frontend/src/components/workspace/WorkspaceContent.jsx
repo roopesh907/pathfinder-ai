@@ -80,7 +80,7 @@ function WorkspaceContent({
     <Tabs
       value={activeTab}
       onValueChange={setActiveTab}
-      className="custom-scrollbar flex min-h-0 flex-1 flex-col gap-0"
+      className="flex min-h-0 flex-1 flex-col gap-0"
     >
       {/* Workspace header and navigation */}
       <div className="border-b border-white/[0.06] px-4 pb-3 pt-4">
@@ -117,7 +117,7 @@ function WorkspaceContent({
 
           <TabsTrigger
             value="careers"
-            className="gap-1.5 rounded-lg py-2 text-xs text-zinc-400 transition-colors hover:text-zinc-200 data-[state=active]:bg-indigo-500/20 data-[state=active]:text-indigo-100 data-[state=active]:shadow-none motion-reduce:transition-none"
+            className="custom-scrollbar gap-1.5 rounded-lg py-2 text-xs text-zinc-400 transition-colors hover:text-zinc-200 data-[state=active]:bg-indigo-500/20 data-[state=active]:text-indigo-100 data-[state=active]:shadow-none motion-reduce:transition-none"
           >
             <BriefcaseBusiness size={13} aria-hidden="true" />
             Matches
