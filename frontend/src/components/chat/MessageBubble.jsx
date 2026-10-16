@@ -1,4 +1,3 @@
-
 import { memo } from "react";
 import { RichText } from "./RichText";
 
@@ -20,7 +19,12 @@ const USER_MESSAGE_CLASSES = [
 
 const ASSISTANT_MESSAGE_CLASSES = [
   "w-full min-w-0 break-words",
-  "text-sm leading-7 text-zinc-300",
+  "text-sm leading-7 text-zinc-200",
+
+  // Softer opening paragraph
+  "[&>p:first-child]:text-zinc-400",
+  "[&>p:first-child]:font-normal",
+  "[&>p:first-child]:leading-6",
 
   // Headings
   "[&_h1]:mb-3 [&_h1]:mt-5 [&_h1]:text-lg",
@@ -84,10 +88,7 @@ const ASSISTANT_MESSAGE_CLASSES = [
 
 const MessageBubble = memo(function MessageBubble({ message }) {
   const isUser = message?.role === "user";
-  const content =
-    typeof message?.content === "string"
-      ? message.content
-      : "";
+  const content = typeof message?.content === "string" ? message.content : "";
 
   if (isUser) {
     return (
