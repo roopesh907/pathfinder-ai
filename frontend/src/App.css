@@ -1,7 +1,90 @@
+
 @import "tailwindcss";
 
-@keyframes gradient-pan { to { background-position: 200% center; } }
+/* =========================================
+   PathFinder AI — Global Design Foundation
+   Tailwind CSS v4
+   ========================================= */
+
+@keyframes gradient-pan {
+  to {
+    background-position: 200% center;
+  }
+}
+
 .text-shimmer {
   background-size: 200% auto;
   animation: gradient-pan 6s linear infinite;
+}
+
+/* Smooth, restrained scrolling */
+html {
+  scroll-behavior: smooth;
+  color-scheme: dark;
+}
+
+/* Consistent focus visibility */
+:focus-visible {
+  outline: 2px solid rgb(129 140 248 / 85%);
+  outline-offset: 3px;
+}
+
+/* Avoid unwanted horizontal overflow */
+html,
+body {
+  min-height: 100%;
+  max-width: 100%;
+}
+
+body {
+  margin: 0;
+  background: #09090f;
+  color: #e4e4e7;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Better text selection */
+::selection {
+  background: rgb(99 102 241 / 30%);
+  color: #ffffff;
+}
+
+/* Subtle, reusable gradient text */
+.gradient-text {
+  background: linear-gradient(
+    110deg,
+    #c4b5fd 0%,
+    #818cf8 45%,
+    #a5b4fc 75%,
+    #c4b5fd 100%
+  );
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Reusable, restrained focus glow */
+.focus-glow {
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.focus-glow:focus-within {
+  border-color: rgb(129 140 248 / 45%);
+  box-shadow: 0 0 0 3px rgb(99 102 241 / 10%);
+}
+
+/* Respect accessibility preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
