@@ -1,3 +1,4 @@
+
 import { memo } from "react";
 import { RichText } from "./RichText";
 
@@ -19,14 +20,14 @@ const USER_MESSAGE_CLASSES = [
 
 const ASSISTANT_MESSAGE_CLASSES = [
   "w-full min-w-0 break-words",
-  "text-sm leading-7 text-zinc-200",
+  "text-sm font-normal leading-7 text-zinc-300",
 
   // Softer opening paragraph
   "[&>p:first-child]:text-zinc-400",
   "[&>p:first-child]:font-normal",
   "[&>p:first-child]:leading-6",
 
-  // Headings
+  // Headings stay prominent
   "[&_h1]:mb-3 [&_h1]:mt-5 [&_h1]:text-lg",
   "[&_h1]:font-semibold [&_h1]:tracking-tight [&_h1]:text-zinc-100",
   "[&_h2]:mb-2 [&_h2]:mt-5 [&_h2]:text-base",
@@ -45,9 +46,12 @@ const ASSISTANT_MESSAGE_CLASSES = [
   "[&_ul]:pl-5 [&_ol]:pl-5",
   "[&_li]:pl-1",
 
-  // Emphasis and links
-  "[&_strong]:font-semibold [&_strong]:text-zinc-100",
+  // Softer bold emphasis
+  "[&_strong]:font-medium",
+  "[&_strong]:text-zinc-200",
   "[&_em]:text-zinc-200",
+
+  // Links
   "[&_a]:break-words [&_a]:text-indigo-300",
   "[&_a]:underline [&_a]:underline-offset-4",
   "[&_a:hover]:text-violet-300",
@@ -75,12 +79,12 @@ const ASSISTANT_MESSAGE_CLASSES = [
   "[&_blockquote]:pl-4 [&_blockquote]:text-zinc-400",
   "[&_hr]:my-5 [&_hr]:border-white/10",
 
-  // Tables: scroll horizontally instead of breaking the layout
+  // Tables
   "[&_table]:my-4 [&_table]:w-full",
   "[&_table]:border-collapse [&_table]:text-left",
   "[&_th]:border [&_th]:border-white/10",
   "[&_th]:bg-white/[0.04] [&_th]:px-3 [&_th]:py-2",
-  "[&_th]:font-semibold [&_th]:text-zinc-100",
+  "[&_th]:font-medium [&_th]:text-zinc-200",
   "[&_td]:border [&_td]:border-white/10",
   "[&_td]:px-3 [&_td]:py-2",
   "[&_td]:align-top",
@@ -88,7 +92,8 @@ const ASSISTANT_MESSAGE_CLASSES = [
 
 const MessageBubble = memo(function MessageBubble({ message }) {
   const isUser = message?.role === "user";
-  const content = typeof message?.content === "string" ? message.content : "";
+  const content =
+    typeof message?.content === "string" ? message.content : "";
 
   if (isUser) {
     return (
