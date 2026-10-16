@@ -506,18 +506,11 @@ export default function App() {
   }
 
   async function handleProfileSubmit(nextProfile) {
-    const isUpdate = profile !== null;
-
     setProfile(nextProfile);
     setScreen("chat");
+    setWorkspaceOpen(true);
+    setActiveTab("careers");
     shouldAutoScrollRef.current = true;
-
-    addMessage(
-      "assistant",
-      isUpdate
-        ? "Profile updated. Refreshing your matches."
-        : "Profile saved. Finding career matches for you.",
-    );
 
     await findMatches(nextProfile);
   }
