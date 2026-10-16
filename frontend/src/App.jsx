@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import {
   AnimatePresence,
@@ -158,8 +159,35 @@ export default function App() {
     () => getActiveConversationId(),
   );
 
+  // Scroll container and scroll-follow behavior for chat messages.
+  const messagesContainerRef = useRef(null);
+  const shouldAutoScrollRef = useRef(true);
+
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const isChat = screen === "chat";
+
+  // Scroll to new messages only when the user is already near the bottom.
+  // This avoids pulling the user away from older messages while reading.
+  useEffect(() => {
+    if (!isChat || !shouldAutoScrollRef.current) return;
+
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    container.scrollTop = container.scrollHeight;
+  }, [messages, chatBusy, matchBusy, isChat]);
+
+  function handleMessagesScroll() {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const distanceFromBottom =
+      container.scrollHeight -
+      container.scrollTop -
+      container.clientHeight;
+
+    shouldAutoScrollRef.current = distanceFromBottom < 120;
+  }
 
   /* --------------------------- Workspace resizing ------------------------ */
 
@@ -263,6 +291,7 @@ export default function App() {
       setScreen("chat");
       setWorkspaceOpen(true);
       setActiveTab("mission");
+      shouldAutoScrollRef.current = true;
       return;
     }
 
@@ -270,6 +299,7 @@ export default function App() {
       setScreen("chat");
       setWorkspaceOpen(true);
       setActiveTab("careers");
+      shouldAutoScrollRef.current = true;
       return;
     }
 
@@ -277,6 +307,7 @@ export default function App() {
       setScreen("chat");
       setWorkspaceOpen(true);
       setActiveTab("roadmap");
+      shouldAutoScrollRef.current = true;
       return;
     }
 
@@ -342,6 +373,11 @@ export default function App() {
     setHistoryError("");
     setHistoryOpen(false);
     setScreen("chat");
+    shouldAutoScrollRef.current = true;
+
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = 0;
+    }
   }
 
   async function handleLoadConversation(conversation) {
@@ -366,6 +402,7 @@ export default function App() {
         })),
       );
 
+      shouldAutoScrollRef.current = true;
       setHistoryOpen(false);
       setScreen("chat");
     } catch (err) {
@@ -405,6 +442,7 @@ export default function App() {
         startNewConversation();
         setActiveConversationIdState(null);
         setMessages([]);
+        shouldAutoScrollRef.current = true;
       }
     } catch (err) {
       setHistoryError(
@@ -493,6 +531,7 @@ export default function App() {
 
     setProfile(nextProfile);
     setScreen("chat");
+    shouldAutoScrollRef.current = true;
 
     addMessage(
       "assistant",
@@ -511,6 +550,8 @@ export default function App() {
 
     if (!message || chatBusy) return;
 
+    // A newly sent message should follow the conversation to its latest entry.
+    shouldAutoScrollRef.current = true;
     addMessage("user", message);
     setChatBusy(true);
 
@@ -618,7 +659,7 @@ export default function App() {
         <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(9,9,15,0.05),rgba(9,9,15,0.5))]" />
       </div>
 
-      {/* The only primary navbar */}
+      {/* Primary navbar */}
       <div className={isChat ? "shrink-0" : ""}>
         <Navbar
           links={
@@ -638,7 +679,7 @@ export default function App() {
         />
       </div>
 
-      {/* Compact action bar — no repeated branding or second navbar */}
+      {/* Compact action bar */}
       {isChat && (
         <div className="z-20 flex h-12 shrink-0 items-center justify-end border-b border-white/[0.07] bg-[#0b0b13]/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
           <div className="flex items-center gap-2">
@@ -840,15 +881,15 @@ export default function App() {
         /* ------------------------------- Chat ----------------------------- */
         <div className="relative mx-auto flex min-h-0 w-full max-w-[1600px] flex-1">
           <section className="flex min-h-0 min-w-0 flex-1 flex-col">
-            <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-4 sm:px-8">
-              {/* Chat introduction */}
-              <div className="shrink-0 py-5 sm:py-6">
+            <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col overflow-hidden px-4 sm:px-8">
+              {/* Fixed chat introduction */}
+              <div className="shrink-0 py-4 sm:py-5">
                 <div className="flex items-center gap-3">
                   <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-indigo-300/15 bg-gradient-to-br from-indigo-400/15 to-violet-400/[0.06] text-indigo-200 shadow-[0_0_28px_rgba(99,102,241,0.08)]">
                     <Sparkles size={20} />
                   </div>
 
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-indigo-300/80">
                       YOUR CAREER COMPANION
                     </p>
@@ -863,7 +904,7 @@ export default function App() {
                   goal into a practical learning plan.
                 </p>
 
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-3 flex flex-wrap gap-2">
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.025] px-3 py-1.5 text-[11px] text-zinc-400">
                     <Target size={12} className="text-indigo-300" />
                     Career matches
@@ -882,16 +923,20 @@ export default function App() {
               </div>
 
               {profile && (
-                <div className="mb-4 shrink-0 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-3 sm:p-4">
+                <div className="mb-3 shrink-0 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-3 sm:p-4">
                   <ProfileSummary profile={profile} />
                 </div>
               )}
 
-              {/* Only the conversation history scrolls vertically */}
+              {/* The message list is the ONLY vertically scrolling chat region. */}
               <div
-                className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pb-5 pr-1"
+                ref={messagesContainerRef}
+                onScroll={handleMessagesScroll}
+                className="min-h-0 min-w-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto overscroll-y-contain pb-5 pr-1 [scrollbar-gutter:stable] [overflow-wrap:anywhere]"
                 aria-live="polite"
                 aria-relevant="additions"
+                aria-label="Chat messages"
+                tabIndex={0}
               >
                 {messages.length === 0 && (
                   <div className="relative overflow-hidden rounded-2xl border border-indigo-300/[0.13] bg-gradient-to-br from-indigo-500/[0.09] via-[#14131f]/90 to-violet-500/[0.05] p-5 sm:p-7">
@@ -952,9 +997,9 @@ export default function App() {
                 )}
               </div>
 
-              {/* Suggestions and input stay at the bottom */}
-              {messages.length <= 1 && (
-                <div className="shrink-0 pb-4 pt-3">
+              {/* Suggestions appear only before the conversation begins. */}
+              {messages.length === 0 && (
+                <div className="shrink-0 pb-3 pt-3">
                   <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-500">
                     A few places to start
                   </p>
@@ -983,7 +1028,8 @@ export default function App() {
                 </div>
               )}
 
-              <div className="shrink-0 bg-gradient-to-t from-[#0a0c12] via-[#0a0c12]/95 to-transparent pb-3 pt-3">
+              {/* Input remains outside the scrolling message list. */}
+              <div className="shrink-0 bg-gradient-to-t from-[#0a0c12] via-[#0a0c12]/95 to-transparent pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
                 <ChatInput
                   onSend={handleSend}
                   disabled={chatBusy || matchBusy}
@@ -997,7 +1043,7 @@ export default function App() {
             </div>
           </section>
 
-          {/* Desktop workspace fills the entire available height */}
+          {/* Desktop workspace fills the available chat height. */}
           {isDesktop && (
             <AnimatePresence initial={false}>
               {workspaceOpen && (
@@ -1010,7 +1056,6 @@ export default function App() {
                   style={{ width: `${workspaceWidth}px` }}
                   className="relative flex h-full min-h-0 shrink-0 flex-col border-l border-white/[0.08] bg-[#0c0c14]/90 backdrop-blur-xl"
                 >
-                  {/* Accessible draggable divider */}
                   <div
                     role="separator"
                     aria-label="Resize chat and workspace panels"
@@ -1070,7 +1115,7 @@ export default function App() {
         <Sheet open={workspaceOpen} onOpenChange={setWorkspaceOpen}>
           <SheetContent
             side="right"
-            className="flex w-full flex-col gap-0 border-white/[0.08] bg-[#0c0c14] p-0 text-zinc-100 sm:max-w-md"
+            className="flex min-h-0 w-full flex-col gap-0 overflow-hidden border-white/[0.08] bg-[#0c0c14] p-0 text-zinc-100 sm:max-w-md"
           >
             <SheetHeader className="shrink-0 border-b border-white/[0.07] p-4">
               <SheetTitle className="text-zinc-100">
@@ -1091,7 +1136,7 @@ export default function App() {
         <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
           <SheetContent
             side="left"
-            className="flex w-full flex-col gap-0 border-white/[0.08] bg-[#0c0c14] p-0 text-zinc-100 sm:max-w-sm"
+            className="flex min-h-0 w-full flex-col gap-0 overflow-hidden border-white/[0.08] bg-[#0c0c14] p-0 text-zinc-100 sm:max-w-sm"
           >
             <SheetHeader className="shrink-0 border-b border-white/[0.07] p-4 text-left">
               <div className="mb-1 flex size-9 items-center justify-center rounded-xl border border-indigo-300/15 bg-indigo-400/[0.08] text-indigo-200">
@@ -1117,7 +1162,7 @@ export default function App() {
               </Button>
             </div>
 
-            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
+            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-3">
               {historyError && (
                 <Alert className="border-rose-900/70 bg-rose-950/30">
                   <AlertDescription className="text-xs text-rose-200">
