@@ -77,28 +77,16 @@ body {
   box-shadow: 0 0 0 3px rgb(99 102 241 / 10%);
 }
 
-/* Respect accessibility preferences */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
+/* Tailwind CSS v4 font tokens */
 @theme {
   --font-sans: "Inter", sans-serif;
   --font-display: "Space Grotesk", sans-serif;
 }
 
-
-/* PathFinder AI — custom scrollbar */
-
+/* Custom scrollbar — Firefox and Chromium browsers */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #6366f1 transparent;
+  scrollbar-color: rgb(129 140 248 / 55%) transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -111,16 +99,25 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(129, 140, 248, 0.45);
+  background: rgb(129 140 248 / 55%);
+  border: 1px solid transparent;
   border-radius: 999px;
+  background-clip: padding-box;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(165, 180, 252, 0.85);
+  background: rgb(165 180 252 / 85%);
+  background-clip: padding-box;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    transition: background-color 180ms ease;
+/* Respect accessibility preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

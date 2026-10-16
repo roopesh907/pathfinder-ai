@@ -22,7 +22,7 @@ import {
   Target,
   BookOpen,
 } from "lucide-react";
-
+import "./App.css";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import BackgroundPaths from "@/components/ui/background-paths";
 import DriftGrid from "@/components/ui/drift-grid";
