@@ -92,7 +92,6 @@ function useMediaQuery(query) {
     const handler = (event) => setMatches(event.matches);
 
     mediaQuery.addEventListener("change", handler);
-
     return () => mediaQuery.removeEventListener("change", handler);
   }, [query]);
 
@@ -114,7 +113,6 @@ function FeatureItem({ icon: Icon, title, description }) {
       <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-indigo-300/15 bg-indigo-400/[0.08] text-indigo-200">
         <Icon size={17} strokeWidth={1.8} />
       </div>
-
       <div className="min-w-0">
         <p className="text-sm font-medium text-zinc-200">{title}</p>
         <p className="mt-1 text-xs leading-5 text-zinc-500">
@@ -159,15 +157,13 @@ export default function App() {
     () => getActiveConversationId(),
   );
 
-  // Scroll container and scroll-follow behavior for chat messages.
   const messagesContainerRef = useRef(null);
   const shouldAutoScrollRef = useRef(true);
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const isChat = screen === "chat";
 
-  // Scroll to new messages only when the user is already near the bottom.
-  // This avoids pulling the user away from older messages while reading.
+  // Follow new messages when the user is already near the bottom.
   useEffect(() => {
     if (!isChat || !shouldAutoScrollRef.current) return;
 
@@ -189,7 +185,7 @@ export default function App() {
     shouldAutoScrollRef.current = distanceFromBottom < 120;
   }
 
-  /* --------------------------- Workspace resizing ------------------------ */
+  /* Workspace resizing */
 
   useEffect(() => {
     if (!isResizingWorkspace) return;
@@ -227,7 +223,6 @@ export default function App() {
     return () => {
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
-
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
       window.removeEventListener("pointercancel", handlePointerUp);
@@ -241,7 +236,6 @@ export default function App() {
     };
 
     window.addEventListener("resize", handleWindowResize);
-
     return () => window.removeEventListener("resize", handleWindowResize);
   }, []);
 
@@ -278,7 +272,7 @@ export default function App() {
     }
   }
 
-  /* -------------------------------- Navigation --------------------------- */
+  /* Navigation */
 
   function handleNavigate(href) {
     if (href === "/" || href === "/onboarding") {
@@ -348,7 +342,7 @@ export default function App() {
     ]);
   }
 
-  /* -------------------------- Conversation history ---------------------- */
+  /* Conversation history */
 
   async function refreshConversations() {
     setHistoryLoading(true);
@@ -487,7 +481,7 @@ export default function App() {
     };
   }, [screen]);
 
-  /* ------------------------------ Career flow --------------------------- */
+  /* Career flow */
 
   async function findMatches(nextProfile) {
     setMatchBusy(true);
@@ -543,14 +537,13 @@ export default function App() {
     await findMatches(nextProfile);
   }
 
-  /* ------------------------------- Chat flow ---------------------------- */
+  /* Chat flow */
 
   async function handleSend(rawText) {
     const message = rawText.trim();
 
     if (!message || chatBusy) return;
 
-    // A newly sent message should follow the conversation to its latest entry.
     shouldAutoScrollRef.current = true;
     addMessage("user", message);
     setChatBusy(true);
@@ -559,7 +552,6 @@ export default function App() {
       const reply = await sendChatMessage(message, profile);
 
       addMessage("assistant", reply);
-
       setActiveConversationIdState(getActiveConversationId());
       void refreshConversations();
     } catch (err) {
@@ -582,7 +574,7 @@ export default function App() {
     return reply;
   }
 
-  /* ------------------------------- Roadmaps ----------------------------- */
+  /* Roadmaps */
 
   async function handleRoadmap(career) {
     if (!profile || !career) return;
@@ -612,7 +604,7 @@ export default function App() {
     }
   }
 
-  /* ------------------------------ Workspace ----------------------------- */
+  /* Workspace */
 
   const workspace = (
     <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
@@ -638,7 +630,7 @@ export default function App() {
     </div>
   );
 
-  /* --------------------------------- Page -------------------------------- */
+  /* Page */
 
   const page = (
     <main
@@ -648,7 +640,6 @@ export default function App() {
           : "relative z-10 min-h-screen w-full overflow-x-clip text-zinc-100"
       }
     >
-      {/* Ambient lighting */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
@@ -659,7 +650,6 @@ export default function App() {
         <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(9,9,15,0.05),rgba(9,9,15,0.5))]" />
       </div>
 
-      {/* Primary navbar */}
       <div className={isChat ? "shrink-0" : ""}>
         <Navbar
           links={
@@ -679,7 +669,6 @@ export default function App() {
         />
       </div>
 
-      {/* Compact action bar */}
       {isChat && (
         <div className="z-20 flex h-12 shrink-0 items-center justify-end border-b border-white/[0.07] bg-[#0b0b13]/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
           <div className="flex items-center gap-2">
@@ -717,7 +706,6 @@ export default function App() {
               ) : (
                 <PanelRight size={14} />
               )}
-
               <span className="hidden sm:inline">
                 {workspaceOpen ? "Hide workspace" : "Workspace"}
               </span>
@@ -727,13 +715,10 @@ export default function App() {
       )}
 
       {!isChat ? (
-        /* ----------------------------- Onboarding ------------------------- */
         <section className="relative mx-auto w-full max-w-7xl px-4 pb-16 pt-8 sm:px-6 sm:pt-12 lg:px-8 lg:pb-24 lg:pt-16">
           <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,0.92fr)_minmax(440px,1.08fr)] lg:gap-14 xl:gap-20">
             <div className="relative lg:sticky lg:top-24">
-              <SectionEyebrow>
-                YOUR NEXT CHAPTER STARTS HERE
-              </SectionEyebrow>
+              <SectionEyebrow>YOUR NEXT CHAPTER STARTS HERE</SectionEyebrow>
 
               <h1 className="max-w-2xl text-4xl font-semibold leading-[1.08] tracking-[-0.045em] text-white sm:text-5xl lg:text-[3.7rem] xl:text-[4.15rem]">
                 Your future,
@@ -756,7 +741,6 @@ export default function App() {
                   </span>
                   Built around your profile
                 </span>
-
                 <span className="inline-flex items-center gap-2">
                   <span className="flex size-5 items-center justify-center rounded-full bg-indigo-400/10 text-indigo-300">
                     <Sparkles size={13} />
@@ -800,10 +784,8 @@ export default function App() {
                     <BookOpen size={14} />
                   </span>
                 </div>
-
                 <p className="text-xs leading-5 text-zinc-500">
-                  Discover options. Compare your matches. Plan what comes
-                  next.
+                  Discover options. Compare your matches. Plan what comes next.
                 </p>
               </div>
             </div>
@@ -815,12 +797,9 @@ export default function App() {
                     {profile ? "Your profile" : "Step 01"}
                   </p>
                   <h2 className="mt-1.5 text-xl font-semibold tracking-tight text-white sm:text-2xl">
-                    {profile
-                      ? "Refine your profile"
-                      : "Let's find your path"}
+                    {profile ? "Refine your profile" : "Let's find your path"}
                   </h2>
                 </div>
-
                 <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-2">
                   <span className="size-1.5 rounded-full bg-indigo-300" />
                   <span className="text-[11px] text-zinc-400">
@@ -834,13 +813,11 @@ export default function App() {
                   aria-hidden="true"
                   className="pointer-events-none absolute -inset-px rounded-2xl bg-gradient-to-b from-indigo-400/20 via-violet-400/[0.07] to-transparent blur-sm"
                 />
-
                 <div className="relative rounded-2xl border border-white/[0.10] bg-[#11111a]/90 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl sm:p-6">
                   <div className="mb-5 flex items-start gap-3 border-b border-white/[0.07] pb-5">
                     <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-indigo-300/15 bg-gradient-to-br from-indigo-400/15 to-violet-400/[0.06] text-indigo-200">
                       <Sparkles size={18} />
                     </div>
-
                     <div>
                       <p className="text-sm font-medium text-zinc-100">
                         A little about you
@@ -857,9 +834,7 @@ export default function App() {
                     initialProfile={profile ?? DEFAULT_PROFILE}
                     submitting={matchBusy}
                     onSubmit={handleProfileSubmit}
-                    onCancel={
-                      profile ? () => setScreen("chat") : undefined
-                    }
+                    onCancel={profile ? () => setScreen("chat") : undefined}
                   />
 
                   <div className="mt-5 flex items-start gap-2 border-t border-white/[0.07] pt-4">
@@ -868,8 +843,8 @@ export default function App() {
                       className="mt-0.5 shrink-0 text-zinc-500"
                     />
                     <p className="text-[11px] leading-5 text-zinc-500">
-                      Your answers help personalize recommendations. You
-                      can update your profile whenever your goals change.
+                      Your answers help personalize recommendations. You can
+                      update your profile whenever your goals change.
                     </p>
                   </div>
                 </div>
@@ -878,17 +853,15 @@ export default function App() {
           </div>
         </section>
       ) : (
-        /* ------------------------------- Chat ----------------------------- */
         <div className="relative mx-auto flex min-h-0 w-full max-w-[1600px] flex-1">
           <section className="flex min-h-0 min-w-0 flex-1 flex-col">
             <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col overflow-hidden px-4 sm:px-8">
-              {/* Fixed chat introduction */}
-              <div className="shrink-0 py-4 sm:py-5">
+              {/* Compact chat header */}
+              <div className="shrink-0 py-3 sm:py-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-indigo-300/15 bg-gradient-to-br from-indigo-400/15 to-violet-400/[0.06] text-indigo-200 shadow-[0_0_28px_rgba(99,102,241,0.08)]">
-                    <Sparkles size={20} />
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-indigo-300/15 bg-gradient-to-br from-indigo-400/15 to-violet-400/[0.06] text-indigo-200">
+                    <Sparkles size={19} />
                   </div>
-
                   <div className="min-w-0">
                     <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-indigo-300/80">
                       YOUR CAREER COMPANION
@@ -899,22 +872,20 @@ export default function App() {
                   </div>
                 </div>
 
-                <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-400">
-                  Explore your matches, ask for advice, or turn a career
-                  goal into a practical learning plan.
+                <p className="mt-2 max-w-xl text-sm leading-5 text-zinc-400">
+                  Explore your matches, ask for advice, or turn a career goal
+                  into a practical learning plan.
                 </p>
 
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-2 flex flex-wrap gap-2">
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.025] px-3 py-1.5 text-[11px] text-zinc-400">
                     <Target size={12} className="text-indigo-300" />
                     Career matches
                   </span>
-
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.025] px-3 py-1.5 text-[11px] text-zinc-400">
                     <BookOpen size={12} className="text-violet-300" />
                     Learning roadmaps
                   </span>
-
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.025] px-3 py-1.5 text-[11px] text-zinc-400">
                     <MessageCircle size={12} className="text-blue-300" />
                     AI guidance
@@ -923,16 +894,16 @@ export default function App() {
               </div>
 
               {profile && (
-                <div className="mb-3 shrink-0 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-3 sm:p-4">
+                <div className="mb-2 max-h-24 shrink-0 overflow-y-auto rounded-2xl border border-white/[0.07] bg-white/[0.025] p-2.5 sm:p-3">
                   <ProfileSummary profile={profile} />
                 </div>
               )}
 
-              {/* The message list is the ONLY vertically scrolling chat region. */}
+              {/* Independent scrolling message area */}
               <div
                 ref={messagesContainerRef}
                 onScroll={handleMessagesScroll}
-                className="min-h-0 min-w-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto overscroll-y-contain pb-5 pr-1 [scrollbar-gutter:stable] [overflow-wrap:anywhere]"
+                className="min-h-0 min-w-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto overscroll-y-contain pb-5 pr-2"
                 aria-live="polite"
                 aria-relevant="additions"
                 aria-label="Chat messages"
@@ -944,16 +915,13 @@ export default function App() {
                       aria-hidden="true"
                       className="pointer-events-none absolute -right-12 -top-12 size-44 rounded-full bg-indigo-500/[0.12] blur-3xl"
                     />
-
                     <div className="relative">
                       <div className="mb-4 flex size-10 items-center justify-center rounded-xl border border-indigo-300/15 bg-indigo-400/[0.10] text-indigo-200">
                         <Sparkles size={19} />
                       </div>
-
                       <h2 className="text-lg font-medium tracking-tight text-white">
                         What would you like to work on?
                       </h2>
-
                       <p className="mt-2 max-w-lg text-sm leading-6 text-zinc-400">
                         Start with a question about your career matches,
                         your skills, or the best next step for your goals.
@@ -971,14 +939,12 @@ export default function App() {
                     <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-indigo-400/[0.10] text-indigo-200">
                       <LoaderCircle size={15} className="animate-spin" />
                     </span>
-
                     <span>
                       <span className="block font-medium text-zinc-200">
                         {matchBusy
                           ? "Finding your career matches"
                           : "Thinking it through"}
                       </span>
-
                       <span className="mt-0.5 block text-zinc-500">
                         {matchBusy
                           ? "Comparing your profile with career paths…"
@@ -997,13 +963,12 @@ export default function App() {
                 )}
               </div>
 
-              {/* Suggestions appear only before the conversation begins. */}
+              {/* Suggestions disappear once the first message is sent */}
               {messages.length === 0 && (
-                <div className="shrink-0 pb-3 pt-3">
-                  <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-500">
+                <div className="shrink-0 pb-2 pt-2">
+                  <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-500">
                     A few places to start
                   </p>
-
                   <div className="grid gap-2 sm:grid-cols-2">
                     {CHAT_SUGGESTIONS.map((suggestion, index) => (
                       <Button
@@ -1012,10 +977,9 @@ export default function App() {
                         variant="outline"
                         onClick={() => handleSend(suggestion)}
                         disabled={chatBusy || matchBusy}
-                        className={`group h-auto min-h-11 justify-between gap-3 whitespace-normal rounded-xl px-3.5 py-3 text-left text-xs font-normal leading-5 text-zinc-300 ${GLASS_INTERACTIVE}`}
+                        className={`group h-auto min-h-10 justify-between gap-3 whitespace-normal rounded-xl px-3.5 py-2.5 text-left text-xs font-normal leading-5 text-zinc-300 ${GLASS_INTERACTIVE}`}
                       >
                         <span>{suggestion}</span>
-
                         <ArrowUpRight
                           size={14}
                           className={`shrink-0 text-zinc-600 transition-colors group-hover:text-indigo-200 motion-reduce:transition-none ${
@@ -1028,22 +992,20 @@ export default function App() {
                 </div>
               )}
 
-              {/* Input remains outside the scrolling message list. */}
-              <div className="shrink-0 bg-gradient-to-t from-[#0a0c12] via-[#0a0c12]/95 to-transparent pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
+              {/* Input remains outside the message scroller */}
+              <div className="shrink-0 bg-gradient-to-t from-[#0a0c12] via-[#0a0c12]/95 to-transparent pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
                 <ChatInput
                   onSend={handleSend}
                   disabled={chatBusy || matchBusy}
                 />
-
-                <p className="mt-2 text-center text-[10px] leading-5 text-zinc-600">
-                  AI guidance can help you explore options. Career scores
-                  are heuristic indicators, not employment predictions.
+                <p className="mt-1.5 text-center text-[10px] leading-4 text-zinc-600">
+                  AI guidance can help you explore options. Career scores are
+                  heuristic indicators, not employment predictions.
                 </p>
               </div>
             </div>
           </section>
 
-          {/* Desktop workspace fills the available chat height. */}
           {isDesktop && (
             <AnimatePresence initial={false}>
               {workspaceOpen && (
@@ -1061,9 +1023,7 @@ export default function App() {
                     aria-label="Resize chat and workspace panels"
                     aria-orientation="vertical"
                     aria-valuemin={MIN_WORKSPACE_WIDTH}
-                    aria-valuemax={clampWorkspaceWidth(
-                      MAX_WORKSPACE_WIDTH,
-                    )}
+                    aria-valuemax={clampWorkspaceWidth(MAX_WORKSPACE_WIDTH)}
                     aria-valuenow={workspaceWidth}
                     aria-valuetext={`Workspace width ${workspaceWidth} pixels`}
                     tabIndex={0}
@@ -1090,7 +1050,6 @@ export default function App() {
                       <div className="flex size-9 items-center justify-center rounded-xl border border-indigo-300/15 bg-indigo-400/[0.08] text-indigo-200">
                         <Target size={16} />
                       </div>
-
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-zinc-100">
                           Your workspace
@@ -1125,7 +1084,6 @@ export default function App() {
                 Matches and learning plan
               </SheetDescription>
             </SheetHeader>
-
             {workspace}
           </SheetContent>
         </Sheet>
@@ -1142,7 +1100,6 @@ export default function App() {
               <div className="mb-1 flex size-9 items-center justify-center rounded-xl border border-indigo-300/15 bg-indigo-400/[0.08] text-indigo-200">
                 <History size={17} />
               </div>
-
               <SheetTitle className="text-zinc-100">
                 Chat history
               </SheetTitle>
@@ -1185,11 +1142,9 @@ export default function App() {
                     <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.03] text-zinc-500">
                       <History size={20} />
                     </div>
-
                     <p className="text-sm font-medium text-zinc-300">
                       No conversations yet
                     </p>
-
                     <p className="mx-auto mt-2 max-w-[230px] text-xs leading-5 text-zinc-500">
                       Your saved chats will appear here when you start
                       talking with PathFinder.
@@ -1231,7 +1186,6 @@ export default function App() {
                       >
                         <History size={15} />
                       </div>
-
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-zinc-200">
                           {conversation.title &&
@@ -1239,7 +1193,6 @@ export default function App() {
                             ? conversation.title
                             : "Conversation"}
                         </p>
-
                         <p className="mt-1 text-xs text-zinc-500">
                           {conversation.updated_at
                             ? new Date(
@@ -1272,10 +1225,7 @@ export default function App() {
                       className="h-9 w-9 shrink-0 self-center text-zinc-500 transition-colors hover:bg-rose-500/10 hover:text-rose-300 disabled:opacity-40"
                     >
                       {isDeleting ? (
-                        <LoaderCircle
-                          size={15}
-                          className="animate-spin"
-                        />
+                        <LoaderCircle size={15} className="animate-spin" />
                       ) : (
                         <Trash2 size={15} />
                       )}
