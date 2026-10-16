@@ -1,4 +1,3 @@
-
 import { memo } from "react";
 
 function renderInline(value, keyPrefix = "inline") {
@@ -77,9 +76,7 @@ function renderInline(value, keyPrefix = "inline") {
 }
 
 function isTableSeparator(line) {
-  return /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(
-    line.trim(),
-  );
+  return /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(line.trim());
 }
 
 function parseTableRow(line) {
@@ -284,7 +281,9 @@ function parseBlocks(content) {
 }
 
 function RichTextComponent({ text }) {
-  const content = String(text ?? "").replace(/\r\n?/g, "\n").trim();
+  const content = String(text ?? "")
+    .replace(/\r\n?/g, "\n")
+    .trim();
 
   if (!content) return null;
 
@@ -305,10 +304,7 @@ function RichTextComponent({ text }) {
           };
 
           return (
-            <HeadingTag
-              key={key}
-              className={headingClasses[block.level]}
-            >
+            <HeadingTag key={key} className={headingClasses[block.level]}>
               {renderInline(block.content, key)}
             </HeadingTag>
           );
@@ -357,7 +353,7 @@ function RichTextComponent({ text }) {
                 </div>
               )}
 
-              <pre className="max-w-full overflow-x-auto p-4 text-[13px] leading-6 text-zinc-200">
+              <pre className="custom-scrollbar max-w-full overflow-x-auto p-4 text-[13px] leading-6 text-zinc-200">
                 <code className="font-mono whitespace-pre">
                   {block.content}
                 </code>
@@ -370,7 +366,7 @@ function RichTextComponent({ text }) {
           return (
             <div
               key={key}
-              className="my-4 w-full max-w-full overflow-x-auto rounded-xl border border-white/10"
+              className="custom-scrollbar my-4 w-full max-w-full overflow-x-auto rounded-xl border border-white/10"
             >
               <table className="w-full border-collapse text-left text-sm">
                 <thead className="bg-white/[0.04]">

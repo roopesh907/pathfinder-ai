@@ -1,4 +1,3 @@
-
 import { History, LoaderCircle, Plus, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -48,7 +47,7 @@ export default function ConversationHistory({
           </Button>
         </div>
 
-        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
+        <div className="custom-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
           {historyError && (
             <Alert className="border-rose-900 bg-rose-950/40">
               <AlertDescription className="text-xs text-rose-200">
@@ -64,27 +63,23 @@ export default function ConversationHistory({
             </div>
           )}
 
-          {!historyLoading &&
-            !historyError &&
-            conversations.length === 0 && (
-              <div className="px-3 py-12 text-center">
-                <History size={24} className="mx-auto mb-3 text-zinc-600" />
+          {!historyLoading && !historyError && conversations.length === 0 && (
+            <div className="px-3 py-12 text-center">
+              <History size={24} className="mx-auto mb-3 text-zinc-600" />
 
-                <p className="text-sm text-zinc-300">
-                  No saved conversations yet
-                </p>
+              <p className="text-sm text-zinc-300">
+                No saved conversations yet
+              </p>
 
-                <p className="mt-2 text-xs leading-5 text-zinc-500">
-                  Your chats will appear here after you send a message.
-                </p>
-              </div>
-            )}
+              <p className="mt-2 text-xs leading-5 text-zinc-500">
+                Your chats will appear here after you send a message.
+              </p>
+            </div>
+          )}
 
           {conversations.map((conversation) => {
-            const isDeleting =
-              deletingConversationId === conversation.id;
-            const isActive =
-              activeConversationId === conversation.id;
+            const isDeleting = deletingConversationId === conversation.id;
+            const isActive = activeConversationId === conversation.id;
 
             return (
               <div
@@ -120,9 +115,7 @@ export default function ConversationHistory({
 
                     <p className="mt-1 text-xs text-zinc-500">
                       {conversation.updated_at
-                        ? new Date(
-                            conversation.updated_at,
-                          ).toLocaleString([], {
+                        ? new Date(conversation.updated_at).toLocaleString([], {
                             dateStyle: "medium",
                             timeStyle: "short",
                           })
@@ -140,9 +133,7 @@ export default function ConversationHistory({
                     Boolean(deletingConversationId) ||
                     chatBusy
                   }
-                  aria-label={`Delete ${
-                    conversation.title || "conversation"
-                  }`}
+                  aria-label={`Delete ${conversation.title || "conversation"}`}
                   title="Delete conversation"
                   onClick={() => handleDeleteConversation(conversation)}
                   className="h-9 w-9 shrink-0 self-center text-zinc-500 hover:bg-rose-500/10 hover:text-rose-300 disabled:opacity-40"

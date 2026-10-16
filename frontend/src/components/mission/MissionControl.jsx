@@ -445,7 +445,7 @@ export default function MissionControl({
             </button>
           </div>
 
-          <div className="max-h-80 space-y-3 overflow-y-auto p-4">
+          <div className="custom-scrollbar max-h-80 space-y-3 overflow-y-auto p-4">
             {mentorMessages.map((message, index) => (
               <div
                 key={`${message.role}-${index}`}
@@ -737,7 +737,7 @@ export default function MissionControl({
                   </div>
 
                   <p className="mt-1 text-xs text-zinc-500">
-                   Phase {task.phase} · {formatDuration(task.estimatedMinutes)}
+                    Phase {task.phase} · {formatDuration(task.estimatedMinutes)}
                   </p>
                 </div>
 

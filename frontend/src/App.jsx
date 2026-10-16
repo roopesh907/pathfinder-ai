@@ -585,7 +585,7 @@ export default function App() {
   /* Workspace */
 
   const workspace = (
-    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+    <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
       <WorkspaceContent
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -835,7 +835,7 @@ export default function App() {
             <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col overflow-hidden px-4 sm:px-8">
               {/* Compact chat header */}
               {profile && (
-                <div className="mb-2 max-h-24 shrink-0 overflow-y-auto rounded-2xl border border-white/[0.07] bg-white/[0.025] p-2.5 sm:p-3">
+                <div className="custom-scrollbar mb-2 max-h-24 shrink-0 overflow-y-auto rounded-2xl border border-white/[0.07] bg-white/[0.025] p-2.5 sm:p-3">
                   <ProfileSummary profile={profile} />
                 </div>
               )}
@@ -844,7 +844,7 @@ export default function App() {
               <div
                 ref={messagesContainerRef}
                 onScroll={handleMessagesScroll}
-                className="min-h-0 min-w-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto overscroll-y-contain pb-5 pr-2"
+                className="custom-scrollbar min-h-0 min-w-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto overscroll-y-contain pb-5 pr-2"
                 aria-live="polite"
                 aria-relevant="additions"
                 aria-label="Chat messages"
@@ -1056,7 +1056,7 @@ export default function App() {
               </Button>
             </div>
 
-            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-3">
+            <div className="custom-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-3">
               {historyError && (
                 <Alert className="border-rose-900/70 bg-rose-950/30">
                   <AlertDescription className="text-xs text-rose-200">

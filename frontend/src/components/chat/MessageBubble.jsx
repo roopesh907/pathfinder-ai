@@ -1,9 +1,8 @@
-
 import { memo } from "react";
 import { RichText } from "./RichText";
 
 const USER_MESSAGE_CLASSES = [
-  "max-w-[90%] min-w-0 break-words sm:max-w-[78%]",
+  "custom-scrollbar max-w-[90%] min-w-0 break-words sm:max-w-[78%]",
   "rounded-2xl rounded-br-md",
   "border border-indigo-300/[0.12]",
   "bg-gradient-to-br from-indigo-500/[0.13] to-violet-500/[0.08]",
@@ -19,7 +18,7 @@ const USER_MESSAGE_CLASSES = [
 ].join(" ");
 
 const ASSISTANT_MESSAGE_CLASSES = [
-  "w-full min-w-0 break-words",
+  "custom-scrollbar w-full min-w-0 break-words",
   "text-sm font-normal leading-7 text-zinc-400",
 
   // Softer opening paragraph
@@ -92,8 +91,7 @@ const ASSISTANT_MESSAGE_CLASSES = [
 
 const MessageBubble = memo(function MessageBubble({ message }) {
   const isUser = message?.role === "user";
-  const content =
-    typeof message?.content === "string" ? message.content : "";
+  const content = typeof message?.content === "string" ? message.content : "";
 
   if (isUser) {
     return (

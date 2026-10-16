@@ -1,10 +1,4 @@
-
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import {
   ArrowUpRight,
@@ -32,16 +26,10 @@ function WorkspaceEmptyState({
       <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-indigo-400/40 to-transparent" />
 
       <div className="mb-4 flex size-12 items-center justify-center rounded-2xl border border-indigo-300/15 bg-indigo-400/[0.08]">
-        <Icon
-          size={21}
-          className="text-indigo-200"
-          aria-hidden="true"
-        />
+        <Icon size={21} className="text-indigo-200" aria-hidden="true" />
       </div>
 
-      <h3 className="text-sm font-semibold text-zinc-100">
-        {title}
-      </h3>
+      <h3 className="text-sm font-semibold text-zinc-100">{title}</h3>
 
       <p className="mt-2 max-w-xs text-xs leading-6 text-zinc-400">
         {description}
@@ -73,8 +61,7 @@ function WorkspaceContent({
   missionContent,
 }) {
   const hasRecommendations =
-    Array.isArray(recommendations) &&
-    recommendations.length > 0;
+    Array.isArray(recommendations) && recommendations.length > 0;
 
   return (
     <Tabs
@@ -96,11 +83,7 @@ function WorkspaceContent({
           </div>
 
           <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.03]">
-            <Compass
-              size={17}
-              className="text-indigo-200"
-              aria-hidden="true"
-            />
+            <Compass size={17} className="text-indigo-200" aria-hidden="true" />
           </div>
         </div>
 
@@ -121,7 +104,6 @@ function WorkspaceContent({
           >
             <BriefcaseBusiness size={13} aria-hidden="true" />
             Matches
-
             {hasRecommendations && (
               <span className="ml-0.5 rounded-md bg-white/[0.07] px-1.5 py-0.5 text-[10px] tabular-nums">
                 {recommendations.length}
@@ -158,7 +140,7 @@ function WorkspaceContent({
       {/* Career matches tab */}
       <TabsContent
         value="careers"
-        className="min-h-0 flex-1 overflow-y-auto p-4 pt-4"
+        className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-4 pt-4"
       >
         {hasRecommendations ? (
           <div className="space-y-4">
@@ -183,16 +165,13 @@ function WorkspaceContent({
 
                     <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2 py-0.5 text-[10px] font-medium text-zinc-400">
                       {recommendations.length}{" "}
-                      {recommendations.length === 1
-                        ? "path"
-                        : "paths"}
+                      {recommendations.length === 1 ? "path" : "paths"}
                     </span>
                   </div>
 
                   <p className="mt-1.5 text-xs leading-5 text-zinc-400">
-                    Explore how your skills and interests align
-                    with each path. Every missing skill is an
-                    opportunity to learn.
+                    Explore how your skills and interests align with each path.
+                    Every missing skill is an opportunity to learn.
                   </p>
                 </div>
               </div>
@@ -205,9 +184,8 @@ function WorkspaceContent({
                 />
 
                 <p className="text-[10px] leading-5 text-zinc-500">
-                  Match scores are heuristic indicators based
-                  on your profile and career catalog—not
-                  predictions of aptitude, employment, or
+                  Match scores are heuristic indicators based on your profile
+                  and career catalog—not predictions of aptitude, employment, or
                   future success.
                 </p>
               </div>
@@ -219,9 +197,7 @@ function WorkspaceContent({
                 Ranked career paths
               </p>
 
-              <p className="text-[10px] text-zinc-600">
-                Highest match first
-              </p>
+              <p className="text-[10px] text-zinc-600">Highest match first</p>
             </div>
 
             {/* Career cards */}
@@ -260,9 +236,7 @@ function WorkspaceContent({
                         <span
                           className={[
                             "truncate text-[10px] font-semibold uppercase tracking-[0.13em]",
-                            isTopMatch
-                              ? "text-indigo-200"
-                              : "text-zinc-500",
+                            isTopMatch ? "text-indigo-200" : "text-zinc-500",
                           ].join(" ")}
                         >
                           {isTopMatch
@@ -273,19 +247,13 @@ function WorkspaceContent({
 
                       {isTopMatch && (
                         <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-indigo-300/20 bg-indigo-400/[0.09] px-2 py-1 text-[9px] font-medium text-indigo-100">
-                          <Sparkles
-                            size={10}
-                            aria-hidden="true"
-                          />
+                          <Sparkles size={10} aria-hidden="true" />
                           Best alignment
                         </span>
                       )}
                     </div>
 
-                    <CareerCard
-                      career={career}
-                      onSelect={onSelect}
-                    />
+                    <CareerCard career={career} onSelect={onSelect} />
                   </section>
                 );
               })}
@@ -305,11 +273,7 @@ function WorkspaceContent({
                 : "Complete your profile to discover career paths aligned with your skills and interests."
             }
             actionLabel={matchBusy ? undefined : "Back to mission"}
-            onAction={
-              matchBusy
-                ? undefined
-                : () => setActiveTab("mission")
-            }
+            onAction={matchBusy ? undefined : () => setActiveTab("mission")}
           />
         )}
       </TabsContent>
