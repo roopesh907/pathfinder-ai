@@ -1,69 +1,159 @@
 
 import { useState } from "react";
-
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { ArrowRight, LoaderCircle, Plus, X } from "lucide-react";
 
-import { ArrowRight, LoaderCircle } from "lucide-react";
-
-import Chip from "../ui/Chip";
-import { OptionButton } from "../ui/OptionButton";
-
-import { GLASS } from "../../constants/styles";
+import Chip from "@/components/ui/Chip";
+import OptionButton from "@/components/ui/OptionButton";
+import { GLASS } from "@/constants/styles";
 import {
   EDUCATION_OPTIONS,
   INTEREST_OPTIONS,
   SKILL_OPTIONS,
-} from "../../constants/profile";
-import { formatRupees, formatSkill } from "../../utils/formatters";
+} from "@/constants/profile";
+import { formatRupees, formatSkill } from "@/utils/formatters";
 
-const SLIDER_STYLES = [
-  "[&>span:first-child]:bg-white/10",
-  "[&>span:first-child>span]:bg-gradient-to-r",
-  "[&>span:first-child>span]:from-indigo-500",
-  "[&>span:first-child>span]:to-violet-400",
-  "[&>span:last-child]:border-indigo-300",
-  "[&>span:last-child]:bg-zinc-950",
-  "[&>span:last-child]:shadow-[0_0_0_4px_rgba(99,102,241,0.12)]",
-  "[&>span:last-child]:transition-transform",
-  "[&>span:last-child]:duration-150",
-  "[&>span:last-child]:hover:scale-110",
-  "[&>span:last-child]:focus-visible:outline-none",
-  "[&>span:last-child]:focus-visible:ring-2",
-  "[&>span:last-child]:focus-visible:ring-indigo-400",
-  "[&>span:last-child]:focus-visible:ring-offset-2",
-  "[&>span:last-child]:focus-visible:ring-offset-zinc-950",
-].join(" ");
+function CustomOption({ value, onRemove }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/25 bg-violet-500/10 py-1 pl-3 pr-1.5 text-sm text-violet-200">
+      {value}
 
-const SECTION_STYLES =
-  "space-y-4 rounded-2xl border border-white/[0.07] p-5 transition-colors duration-200 hover:border-indigo-400/20 sm:p-6";
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label={`Remove ${value}`}
+        className="rounded-full p-0.5 transition hover:bg-white/10"
+      >
+        <X size={13} />
+      </button>
+    </span>
+  );
+}
 
-const LABEL_STYLES =
-  "text-sm font-medium text-zinc-200";
+function CustomOptionEditor({
+  label,
+  value,
+  onChange,
+  onAdd,
+  onCancel,
+}) {
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        onAdd();
+      }}
+      className="mt-3 flex flex-wrap items-center gap-2"
+    >
+      <input
+        autoFocus
+        aria-label={label}
+        type="text"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={`Enter ${label.toLowerCase()}...`}
+        maxLength={60}
+        className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-violet-400/60 focus:ring-2 focus:ring-violet-400/10"
+      />
+
+      <Button
+        type="submit"
+        size="sm"
+        disabled={!value.trim()}
+        className="gap-1.5 rounded-xl bg-violet-500 text-white hover:bg-violet-400"
+      >
+        <Plus size={14} />
+        Add
+      </Button>
+
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        onClick={onCancel}
+        className="rounded-xl text-slate-400 hover:text-white"
+      >
+        Cancel
+      </Button>
+    </form>
+  );
+}
 
 export default function ProfileForm({
   initialProfile,
+  submitting = false,
   onSubmit,
   onCancel,
-  submitting,
 }) {
-  const [draft, setDraft] = useState(initialProfile);
+  const [draft, setDraft] = useState(() => ({
+    ...initialProfile,
+    interests: [...(initialProfile?.interests ?? [])],
+    skills: [...(initialProfile?.skills ?? [])],
+  }));
+
+  const [showInterestEditor, setShowInterestEditor] = useState(false);
+  const [showSkillEditor, setShowSkillEditor] = useState(false);
+
+  const [customInterest, setCustomInterest] = useState("");
+  const [customSkill, setCustomSkill] = useState("");
 
   const canSubmit = draft.interests.length > 0 && !submitting;
 
-  function update(key, value) {
-    setDraft((current) => ({ ...current, [key]: value }));
+  function updateField(key, value) {
+    setDraft((current) => ({
+      ...current,
+      [key]: value,
+    }));
   }
 
   function toggle(key, value) {
+    setDraft((current) => {
+      const selected = current[key] ?? [];
+
+      const updated = selected.includes(value)
+        ? selected.filter((item) => item !== value)
+        : [...selected, value];
+
+      return {
+        ...current,
+        [key]: updated,
+      };
+    });
+  }
+
+  function addCustomOption(key, value, setValue, setEditorOpen) {
+    const cleanedValue = value.trim().replace(/\s+/g, " ");
+
+    if (!cleanedValue) return;
+
+    setDraft((current) => {
+      const existing = current[key] ?? [];
+
+      const alreadyExists = existing.some(
+        (item) => item.toLowerCase() === cleanedValue.toLowerCase(),
+      );
+
+      if (alreadyExists) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [key]: [...existing, cleanedValue],
+      };
+    });
+
+    setValue("");
+    setEditorOpen(false);
+  }
+
+  function removeCustomOption(key, value) {
     setDraft((current) => ({
       ...current,
-      [key]: current[key].includes(value)
-        ? current[key].filter((item) => item !== value)
-        : [...current[key], value],
+      [key]: (current[key] ?? []).filter((item) => item !== value),
     }));
   }
 
@@ -72,228 +162,318 @@ export default function ProfileForm({
 
     if (!canSubmit) return;
 
-    onSubmit({ ...draft, goals: draft.goals.trim() });
+    // Goals are intentionally omitted from the submitted profile.
+    const profileWithoutGoals = { ...draft };
+    delete profileWithoutGoals.goals;
+
+    onSubmit({
+      ...profileWithoutGoals,
+      interests: [...draft.interests],
+      skills: [...draft.skills],
+    });
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      {/* Weekly learning time */}
-      <section className={`${SECTION_STYLES} ${GLASS}`}>
-        <div className="flex items-center justify-between gap-4">
-          <Label className={LABEL_STYLES}>
-            Time per week
-          </Label>
+    <form onSubmit={handleSubmit} className="flex min-h-0 flex-col">
+      <div className="space-y-8">
+        {/* Weekly learning time */}
+        <section className="space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <Label className="text-sm font-semibold text-white">
+                Weekly learning time
+              </Label>
 
-          <span className="rounded-lg border border-indigo-400/20 bg-indigo-400/[0.08] px-3 py-1.5 text-sm font-semibold tabular-nums text-indigo-200">
-            {draft.weekly_hours}{" "}
-            {draft.weekly_hours === 1 ? "hour" : "hours"}
-          </span>
-        </div>
+              <p className="text-sm text-slate-400">
+                How much time can you dedicate to learning?
+              </p>
+            </div>
 
-        <Slider
-          aria-label="Hours per week"
-          min={1}
-          max={40}
-          step={1}
-          value={[draft.weekly_hours]}
-          onValueChange={([value]) => update("weekly_hours", value)}
-          className={`py-1 ${SLIDER_STYLES}`}
-        />
-
-        <div className="flex justify-between text-xs text-zinc-500">
-          <span>1 hour</span>
-          <span>40 hours</span>
-        </div>
-
-        <p className="text-xs leading-relaxed text-zinc-400">
-          Choose the time you can realistically commit to learning each week.
-        </p>
-      </section>
-
-      {/* Monthly course budget */}
-      <section className={`${SECTION_STYLES} ${GLASS}`}>
-        <div className="flex items-center justify-between gap-4">
-          <Label className={LABEL_STYLES}>
-            Monthly budget for courses
-          </Label>
-
-          <span className="rounded-lg border border-violet-400/20 bg-violet-400/[0.08] px-3 py-1.5 text-sm font-semibold tabular-nums text-violet-200">
-            {formatRupees(draft.monthly_budget)}
-          </span>
-        </div>
-
-        <Slider
-          aria-label="Monthly budget in rupees"
-          min={0}
-          max={5000}
-          step={100}
-          value={[draft.monthly_budget]}
-          onValueChange={([value]) => update("monthly_budget", value)}
-          className={`py-1 ${SLIDER_STYLES}`}
-        />
-
-        <div className="flex justify-between text-xs text-zinc-500">
-          <span>₹0</span>
-          <span>₹5,000</span>
-        </div>
-
-        <p className="text-xs leading-relaxed text-zinc-400">
-          Set your budget to ₹0 if you want to use free learning resources only.
-        </p>
-      </section>
-
-      {/* Education */}
-      <section className={`${SECTION_STYLES} ${GLASS} space-y-3`}>
-        <Label className={LABEL_STYLES}>
-          Education level
-        </Label>
-
-        <div
-          role="radiogroup"
-          aria-label="Education level"
-          className="grid gap-2 sm:grid-cols-2"
-        >
-          {EDUCATION_OPTIONS.map((option) => (
-            <OptionButton
-              key={option}
-              active={draft.education_level === option}
-              onClick={() => update("education_level", option)}
-            >
-              {option}
-            </OptionButton>
-          ))}
-        </div>
-      </section>
-
-      {/* Interests */}
-      <section className={`${SECTION_STYLES} ${GLASS} space-y-3`}>
-        <div className="flex items-center justify-between gap-3">
-          <Label className={LABEL_STYLES}>
-            Interests
-          </Label>
-
-          <span className="text-xs tabular-nums text-zinc-500">
-            {draft.interests.length} selected
-          </span>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {INTEREST_OPTIONS.map((interest) => (
-            <Chip
-              key={interest}
-              selected={draft.interests.includes(interest)}
-              onClick={() => toggle("interests", interest)}
-            >
-              {formatSkill(interest)}
-            </Chip>
-          ))}
-        </div>
-
-        {draft.interests.length === 0 && (
-          <p className="text-xs text-rose-300" role="alert">
-            Select at least one interest to continue.
-          </p>
-        )}
-      </section>
-
-      {/* Current skills */}
-      <section className={`${SECTION_STYLES} ${GLASS} space-y-3`}>
-        <div className="flex items-center justify-between gap-3">
-          <Label className={LABEL_STYLES}>
-            Current skills
-          </Label>
-
-          <span className="text-xs tabular-nums text-zinc-500">
-            {draft.skills.length} selected
-          </span>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {SKILL_OPTIONS.map((skill) => (
-            <Chip
-              key={skill}
-              selected={draft.skills.includes(skill)}
-              onClick={() => toggle("skills", skill)}
-            >
-              {formatSkill(skill)}
-            </Chip>
-          ))}
-        </div>
-
-        <p className="text-xs leading-relaxed text-zinc-400">
-          Select the skills you already have. You can build on them in your roadmap.
-        </p>
-      </section>
-
-      {/* Personal goal */}
-      <section className={`${SECTION_STYLES} ${GLASS} space-y-3`}>
-        <div className="flex items-center justify-between gap-3">
-          <Label htmlFor="goal" className={LABEL_STYLES}>
-            Goal{" "}
-            <span className="font-normal text-zinc-500">
-              (optional)
+            <span className="shrink-0 rounded-lg border border-violet-400/20 bg-violet-500/10 px-3 py-1.5 text-sm font-semibold text-violet-200">
+              {draft.weekly_hours} hrs/week
             </span>
-          </Label>
+          </div>
 
-          <span className="text-xs tabular-nums text-zinc-500">
-            {draft.goals.length}/500
-          </span>
-        </div>
+          <Slider
+            value={[draft.weekly_hours]}
+            min={1}
+            max={40}
+            step={1}
+            onValueChange={(value) =>
+              updateField("weekly_hours", value[0])
+            }
+            aria-label="Weekly learning hours"
+          />
 
-        <Textarea
-          id="goal"
-          value={draft.goals}
-          onChange={(event) => update("goals", event.target.value)}
-          rows={3}
-          maxLength={500}
-          placeholder="For example: build scientific simulations for research"
-          className="resize-none border-white/10 bg-zinc-950/40 text-sm text-zinc-100 transition-colors placeholder:text-zinc-600 hover:border-indigo-400/30 focus-visible:border-indigo-400/60 focus-visible:ring-indigo-400/30"
-        />
-      </section>
+          <div className="flex justify-between text-xs text-slate-500">
+            <span>1 hour</span>
+            <span>40 hours</span>
+          </div>
+        </section>
 
-      <Separator className="bg-white/10" />
+        <Separator className="bg-white/10" />
+
+        {/* Monthly budget */}
+        <section className="space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <Label className="text-sm font-semibold text-white">
+                Monthly learning budget
+              </Label>
+
+              <p className="text-sm text-slate-400">
+                How much can you spend on courses and resources?
+              </p>
+            </div>
+
+            <span className="shrink-0 rounded-lg border border-violet-400/20 bg-violet-500/10 px-3 py-1.5 text-sm font-semibold text-violet-200">
+              {formatRupees(draft.monthly_budget)}
+            </span>
+          </div>
+
+          <Slider
+            value={[draft.monthly_budget]}
+            min={0}
+            max={5000}
+            step={100}
+            onValueChange={(value) =>
+              updateField("monthly_budget", value[0])
+            }
+            aria-label="Monthly learning budget in rupees"
+          />
+
+          <div className="flex justify-between text-xs text-slate-500">
+            <span>Free resources</span>
+            <span>₹5,000</span>
+          </div>
+        </section>
+
+        <Separator className="bg-white/10" />
+
+        {/* Education level */}
+        <section className="space-y-3">
+          <div className="space-y-1">
+            <Label className="text-sm font-semibold text-white">
+              Education level
+            </Label>
+
+            <p className="text-sm text-slate-400">
+              Choose the option that best describes you.
+            </p>
+          </div>
+
+          <div
+            role="group"
+            aria-label="Education level"
+            className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+          >
+            {EDUCATION_OPTIONS.map((option) => (
+              <OptionButton
+                key={option}
+                label={option}
+                selected={draft.education_level === option}
+                onClick={() => updateField("education_level", option)}
+              />
+            ))}
+          </div>
+        </section>
+
+        <Separator className="bg-white/10" />
+
+        {/* Interests */}
+        <section className="space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <Label className="text-sm font-semibold text-white">
+                Interests
+              </Label>
+
+              <p className="text-sm text-slate-400">
+                Select the subjects you enjoy exploring.
+              </p>
+            </div>
+
+            <span className="shrink-0 text-xs text-slate-500">
+              {draft.interests.length} selected
+            </span>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {INTEREST_OPTIONS.map((interest) => (
+              <Chip
+                key={interest}
+                label={formatSkill(interest)}
+                selected={draft.interests.includes(interest)}
+                onClick={() => toggle("interests", interest)}
+              />
+            ))}
+          </div>
+
+          {draft.interests.filter(
+            (interest) => !INTEREST_OPTIONS.includes(interest),
+          ).length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {draft.interests
+                .filter(
+                  (interest) => !INTEREST_OPTIONS.includes(interest),
+                )
+                .map((interest) => (
+                  <CustomOption
+                    key={interest}
+                    value={interest}
+                    onRemove={() =>
+                      removeCustomOption("interests", interest)
+                    }
+                  />
+                ))}
+            </div>
+          )}
+
+          {showInterestEditor ? (
+            <CustomOptionEditor
+              label="Interest"
+              value={customInterest}
+              onChange={setCustomInterest}
+              onAdd={() =>
+                addCustomOption(
+                  "interests",
+                  customInterest,
+                  setCustomInterest,
+                  setShowInterestEditor,
+                )
+              }
+              onCancel={() => {
+                setCustomInterest("");
+                setShowInterestEditor(false);
+              }}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowInterestEditor(true)}
+              className="inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-violet-300 transition hover:bg-violet-500/10 hover:text-violet-200"
+            >
+              <Plus size={15} />
+              Add a custom interest
+            </button>
+          )}
+
+          {draft.interests.length === 0 && (
+            <p className="text-sm text-amber-300">
+              Select at least one interest to get career recommendations.
+            </p>
+          )}
+        </section>
+
+        <Separator className="bg-white/10" />
+
+        {/* Skills */}
+        <section className="space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <Label className="text-sm font-semibold text-white">
+                Current skills
+              </Label>
+
+              <p className="text-sm text-slate-400">
+                Select skills you already have, even if you are a beginner.
+              </p>
+            </div>
+
+            <span className="shrink-0 text-xs text-slate-500">
+              {draft.skills.length} selected
+            </span>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {SKILL_OPTIONS.map((skill) => (
+              <Chip
+                key={skill}
+                label={formatSkill(skill)}
+                selected={draft.skills.includes(skill)}
+                onClick={() => toggle("skills", skill)}
+              />
+            ))}
+          </div>
+
+          {draft.skills.filter(
+            (skill) => !SKILL_OPTIONS.includes(skill),
+          ).length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {draft.skills
+                .filter(
+                  (skill) => !SKILL_OPTIONS.includes(skill),
+                )
+                .map((skill) => (
+                  <CustomOption
+                    key={skill}
+                    value={skill}
+                    onRemove={() => removeCustomOption("skills", skill)}
+                  />
+                ))}
+            </div>
+          )}
+
+          {showSkillEditor ? (
+            <CustomOptionEditor
+              label="Skill"
+              value={customSkill}
+              onChange={setCustomSkill}
+              onAdd={() =>
+                addCustomOption(
+                  "skills",
+                  customSkill,
+                  setCustomSkill,
+                  setShowSkillEditor,
+                )
+              }
+              onCancel={() => {
+                setCustomSkill("");
+                setShowSkillEditor(false);
+              }}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowSkillEditor(true)}
+              className="inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-violet-300 transition hover:bg-violet-500/10 hover:text-violet-200"
+            >
+              <Plus size={15} />
+              Add a custom skill
+            </button>
+          )}
+        </section>
+      </div>
 
       {/* Form actions */}
-      <div className="flex items-center justify-between gap-3 pt-1">
-        {onCancel ? (
+      <div className="sticky bottom-0 mt-8 flex flex-wrap items-center justify-end gap-3 border-t border-white/10 bg-slate-950/90 py-4 backdrop-blur-xl">
+        {onCancel && (
           <Button
             type="button"
             variant="ghost"
             onClick={onCancel}
             disabled={submitting}
-            className="text-zinc-400 transition-colors hover:bg-white/[0.05] hover:text-zinc-100"
+            className="rounded-xl text-slate-300 hover:bg-white/5 hover:text-white"
           >
-            Back to chat
+            Cancel
           </Button>
-        ) : (
-          <span />
         )}
 
         <Button
           type="submit"
           disabled={!canSubmit}
-          className="gap-2 bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-lg shadow-indigo-950/20 transition-all duration-200 hover:from-indigo-400 hover:to-violet-400 hover:shadow-indigo-500/20 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 disabled:cursor-not-allowed disabled:opacity-40"
+          className="gap-2 rounded-xl bg-violet-500 px-5 text-white shadow-lg shadow-violet-950/30 transition hover:bg-violet-400 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {submitting && (
-            <LoaderCircle
-              className="animate-spin"
-              size={15}
-              aria-hidden="true"
-            />
-          )}
-
-          {submitting
-            ? "Saving..."
-            : onCancel
-              ? "Save and refresh matches"
-              : "Continue"}
-
-          {!submitting && (
-            <ArrowRight
-              size={15}
-              className="transition-transform duration-200 group-hover:translate-x-0.5"
-              aria-hidden="true"
-            />
+          {submitting ? (
+            <>
+              <LoaderCircle size={16} className="animate-spin" />
+              Finding careers...
+            </>
+          ) : (
+            <>
+              Find my career paths
+              <ArrowRight size={16} />
+            </>
           )}
         </Button>
       </div>
