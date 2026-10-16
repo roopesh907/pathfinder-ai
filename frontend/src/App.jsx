@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import {
   AnimatePresence,
@@ -77,9 +76,7 @@ function clampWorkspaceWidth(width) {
     Math.min(MAX_WORKSPACE_WIDTH, window.innerWidth - MIN_CHAT_WIDTH),
   );
 
-  return Math.round(
-    Math.max(MIN_WORKSPACE_WIDTH, Math.min(maxWidth, width)),
-  );
+  return Math.round(Math.max(MIN_WORKSPACE_WIDTH, Math.min(maxWidth, width)));
 }
 
 function useMediaQuery(query) {
@@ -115,9 +112,7 @@ function FeatureItem({ icon: Icon, title, description }) {
       </div>
       <div className="min-w-0">
         <p className="text-sm font-medium text-zinc-200">{title}</p>
-        <p className="mt-1 text-xs leading-5 text-zinc-500">
-          {description}
-        </p>
+        <p className="mt-1 text-xs leading-5 text-zinc-500">{description}</p>
       </div>
     </div>
   );
@@ -140,9 +135,7 @@ export default function App() {
   const [matchError, setMatchError] = useState("");
   const [roadmapError, setRoadmapError] = useState("");
 
-  const [workspaceWidth, setWorkspaceWidth] = useState(
-    DEFAULT_WORKSPACE_WIDTH,
-  );
+  const [workspaceWidth, setWorkspaceWidth] = useState(DEFAULT_WORKSPACE_WIDTH);
   const [isResizingWorkspace, setIsResizingWorkspace] = useState(false);
   const resizeOrigin = useRef(null);
 
@@ -150,11 +143,10 @@ export default function App() {
   const [conversations, setConversations] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
-  const [deletingConversationId, setDeletingConversationId] =
-    useState(null);
+  const [deletingConversationId, setDeletingConversationId] = useState(null);
 
-  const [activeConversationId, setActiveConversationIdState] = useState(
-    () => getActiveConversationId(),
+  const [activeConversationId, setActiveConversationIdState] = useState(() =>
+    getActiveConversationId(),
   );
 
   const messagesContainerRef = useRef(null);
@@ -178,9 +170,7 @@ export default function App() {
     if (!container) return;
 
     const distanceFromBottom =
-      container.scrollHeight -
-      container.scrollTop -
-      container.clientHeight;
+      container.scrollHeight - container.scrollTop - container.clientHeight;
 
     shouldAutoScrollRef.current = distanceFromBottom < 120;
   }
@@ -309,9 +299,7 @@ export default function App() {
       setScreen("onboarding");
       setWorkspaceOpen(false);
 
-      const id = href.endsWith("#explore")
-        ? "explore"
-        : "how-it-works";
+      const id = href.endsWith("#explore") ? "explore" : "how-it-works";
 
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
@@ -440,8 +428,7 @@ export default function App() {
       }
     } catch (err) {
       setHistoryError(
-        err.message ||
-          "Couldn't delete this conversation. Please try again.",
+        err.message || "Couldn't delete this conversation. Please try again.",
       );
     } finally {
       setDeletingConversationId(null);
@@ -491,9 +478,7 @@ export default function App() {
       const result = await matchCareers(nextProfile);
 
       if (!Array.isArray(result?.recommendations)) {
-        throw new Error(
-          "The career service returned an unexpected response.",
-        );
+        throw new Error("The career service returned an unexpected response.");
       }
 
       setRecommendations(result.recommendations);
@@ -692,9 +677,7 @@ export default function App() {
               size="sm"
               onClick={() => setWorkspaceOpen((open) => !open)}
               aria-expanded={workspaceOpen}
-              aria-label={
-                workspaceOpen ? "Close workspace" : "Open workspace"
-              }
+              aria-label={workspaceOpen ? "Close workspace" : "Open workspace"}
               className={`h-8 gap-1.5 border-white/10 bg-white/[0.025] text-xs transition-colors hover:border-indigo-300/25 hover:bg-indigo-400/[0.08] hover:text-white ${
                 workspaceOpen
                   ? "border-indigo-300/25 bg-indigo-400/[0.08] text-indigo-100"
@@ -729,9 +712,9 @@ export default function App() {
               </h1>
 
               <p className="mt-6 max-w-xl text-sm leading-7 text-zinc-400 sm:text-base sm:leading-8">
-                Discover career paths that fit your interests, understand
-                which skills to build, and turn your ambition into a
-                realistic plan you can follow.
+                Discover career paths that fit your interests, understand which
+                skills to build, and turn your ambition into a realistic plan
+                you can follow.
               </p>
 
               <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-zinc-400">
@@ -823,8 +806,8 @@ export default function App() {
                         A little about you
                       </p>
                       <p className="mt-1 text-xs leading-5 text-zinc-500">
-                        Tell us what you're interested in and how much time
-                        you can invest.
+                        Tell us what you're interested in and how much time you
+                        can invest.
                       </p>
                     </div>
                   </div>
@@ -857,42 +840,6 @@ export default function App() {
           <section className="flex min-h-0 min-w-0 flex-1 flex-col">
             <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col overflow-hidden px-4 sm:px-8">
               {/* Compact chat header */}
-              <div className="shrink-0 py-3 sm:py-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-indigo-300/15 bg-gradient-to-br from-indigo-400/15 to-violet-400/[0.06] text-indigo-200">
-                    <Sparkles size={19} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-indigo-300/80">
-                      YOUR CAREER COMPANION
-                    </p>
-                    <h1 className="mt-1 text-xl font-semibold tracking-tight text-white sm:text-2xl">
-                      Let's figure out your next move.
-                    </h1>
-                  </div>
-                </div>
-
-                <p className="mt-2 max-w-xl text-sm leading-5 text-zinc-400">
-                  Explore your matches, ask for advice, or turn a career goal
-                  into a practical learning plan.
-                </p>
-
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.025] px-3 py-1.5 text-[11px] text-zinc-400">
-                    <Target size={12} className="text-indigo-300" />
-                    Career matches
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.025] px-3 py-1.5 text-[11px] text-zinc-400">
-                    <BookOpen size={12} className="text-violet-300" />
-                    Learning roadmaps
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.025] px-3 py-1.5 text-[11px] text-zinc-400">
-                    <MessageCircle size={12} className="text-blue-300" />
-                    AI guidance
-                  </span>
-                </div>
-              </div>
-
               {profile && (
                 <div className="mb-2 max-h-24 shrink-0 overflow-y-auto rounded-2xl border border-white/[0.07] bg-white/[0.025] p-2.5 sm:p-3">
                   <ProfileSummary profile={profile} />
@@ -923,8 +870,8 @@ export default function App() {
                         What would you like to work on?
                       </h2>
                       <p className="mt-2 max-w-lg text-sm leading-6 text-zinc-400">
-                        Start with a question about your career matches,
-                        your skills, or the best next step for your goals.
+                        Start with a question about your career matches, your
+                        skills, or the best next step for your goals.
                       </p>
                     </div>
                   </div>
@@ -1077,9 +1024,7 @@ export default function App() {
             className="flex min-h-0 w-full flex-col gap-0 overflow-hidden border-white/[0.08] bg-[#0c0c14] p-0 text-zinc-100 sm:max-w-md"
           >
             <SheetHeader className="shrink-0 border-b border-white/[0.07] p-4">
-              <SheetTitle className="text-zinc-100">
-                Your workspace
-              </SheetTitle>
+              <SheetTitle className="text-zinc-100">Your workspace</SheetTitle>
               <SheetDescription className="text-xs text-zinc-500">
                 Matches and learning plan
               </SheetDescription>
@@ -1100,9 +1045,7 @@ export default function App() {
               <div className="mb-1 flex size-9 items-center justify-center rounded-xl border border-indigo-300/15 bg-indigo-400/[0.08] text-indigo-200">
                 <History size={17} />
               </div>
-              <SheetTitle className="text-zinc-100">
-                Chat history
-              </SheetTitle>
+              <SheetTitle className="text-zinc-100">Chat history</SheetTitle>
               <SheetDescription className="text-xs text-zinc-500">
                 Your saved PathFinder conversations
               </SheetDescription>
@@ -1146,17 +1089,15 @@ export default function App() {
                       No conversations yet
                     </p>
                     <p className="mx-auto mt-2 max-w-[230px] text-xs leading-5 text-zinc-500">
-                      Your saved chats will appear here when you start
-                      talking with PathFinder.
+                      Your saved chats will appear here when you start talking
+                      with PathFinder.
                     </p>
                   </div>
                 )}
 
               {conversations.map((conversation) => {
-                const isDeleting =
-                  deletingConversationId === conversation.id;
-                const isActive =
-                  activeConversationId === conversation.id;
+                const isDeleting = deletingConversationId === conversation.id;
+                const isActive = activeConversationId === conversation.id;
 
                 return (
                   <div
@@ -1195,12 +1136,13 @@ export default function App() {
                         </p>
                         <p className="mt-1 text-xs text-zinc-500">
                           {conversation.updated_at
-                            ? new Date(
-                                conversation.updated_at,
-                              ).toLocaleString([], {
-                                dateStyle: "medium",
-                                timeStyle: "short",
-                              })
+                            ? new Date(conversation.updated_at).toLocaleString(
+                                [],
+                                {
+                                  dateStyle: "medium",
+                                  timeStyle: "short",
+                                },
+                              )
                             : "Saved conversation"}
                         </p>
                       </div>
@@ -1219,9 +1161,7 @@ export default function App() {
                         conversation.title || "conversation"
                       }`}
                       title="Delete conversation"
-                      onClick={() =>
-                        handleDeleteConversation(conversation)
-                      }
+                      onClick={() => handleDeleteConversation(conversation)}
                       className="h-9 w-9 shrink-0 self-center text-zinc-500 transition-colors hover:bg-rose-500/10 hover:text-rose-300 disabled:opacity-40"
                     >
                       {isDeleting ? (
@@ -1237,8 +1177,7 @@ export default function App() {
 
             <div className="shrink-0 border-t border-white/[0.07] px-4 py-3">
               <p className="text-[11px] leading-5 text-zinc-600">
-                Deleting a conversation permanently removes its saved
-                messages.
+                Deleting a conversation permanently removes its saved messages.
               </p>
             </div>
           </SheetContent>
