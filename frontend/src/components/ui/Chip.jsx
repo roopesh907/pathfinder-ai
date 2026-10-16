@@ -1,16 +1,32 @@
+export default function Chip({
+  label,
+  children,
+  selected = false,
+  onClick,
+  className = "",
+}) {
+  const content = label ?? children;
 
-export default function Chip({ children, selected = false, onClick }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border px-3 py-1.5 text-sm transition-all duration-200 ${
-        selected
-          ? "border-cyan-400/40 bg-cyan-400/10 text-cyan-200"
-          : "border-white/10 bg-white/[0.03] text-zinc-400 hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
-      }`}
+      aria-pressed={selected}
+      className={`
+        inline-flex items-center justify-center
+        rounded-full border px-3 py-1.5 text-sm
+        font-medium transition-all duration-200
+        focus-visible:outline-none
+        focus-visible:ring-2 focus-visible:ring-cyan-400/60
+        ${
+          selected
+            ? "border-cyan-400/50 bg-cyan-400/15 text-cyan-100"
+            : "border-white/15 bg-white/[0.04] text-zinc-200 hover:border-cyan-300/30 hover:bg-white/[0.08] hover:text-white"
+        }
+        ${className}
+      `}
     >
-      {children}
+      {content}
     </button>
   );
 }
