@@ -1,11 +1,11 @@
+
 import { m } from "motion/react";
 
-// A dot grid that drifts slowly. The grid is one layer animated with transform
-// only, so the browser composites it on the GPU and never repaints the layout.
+// A slowly drifting dot grid. Animation uses transforms only.
 export default function DriftGrid({ children, className = "" }) {
   return (
     <div
-      className={`relative isolate min-h-screen overflow-hidden ${className}`}
+      className={`relative isolate h-dvh min-h-0 overflow-hidden ${className}`}
     >
       <div
         aria-hidden="true"
@@ -13,7 +13,11 @@ export default function DriftGrid({ children, className = "" }) {
       >
         <m.div
           animate={{ x: [0, 32], y: [0, 32] }}
-          transition={{ duration: 14, repeat: Infinity, ease: "linear" }}
+          transition={{
+            duration: 14,
+            repeat: Infinity,
+            ease: "linear",
+          }}
           className="absolute -inset-8 will-change-transform"
           style={{
             backgroundImage:
@@ -26,6 +30,7 @@ export default function DriftGrid({ children, className = "" }) {
           }}
         />
       </div>
+
       {children}
     </div>
   );
