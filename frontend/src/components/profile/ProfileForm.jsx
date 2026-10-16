@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -8,7 +7,7 @@ import { ArrowRight, LoaderCircle, Plus, X } from "lucide-react";
 
 import Chip from "@/components/ui/Chip";
 import OptionButton from "@/components/ui/OptionButton";
-import { GLASS } from "@/constants/styles";
+
 import {
   EDUCATION_OPTIONS,
   INTEREST_OPTIONS,
@@ -33,13 +32,7 @@ function CustomOption({ value, onRemove }) {
   );
 }
 
-function CustomOptionEditor({
-  label,
-  value,
-  onChange,
-  onAdd,
-  onCancel,
-}) {
+function CustomOptionEditor({ label, value, onChange, onAdd, onCancel }) {
   return (
     <form
       onSubmit={(event) => {
@@ -199,9 +192,7 @@ export default function ProfileForm({
             min={1}
             max={40}
             step={1}
-            onValueChange={(value) =>
-              updateField("weekly_hours", value[0])
-            }
+            onValueChange={(value) => updateField("weekly_hours", value[0])}
             aria-label="Weekly learning hours"
           />
 
@@ -236,9 +227,7 @@ export default function ProfileForm({
             min={0}
             max={5000}
             step={100}
-            onValueChange={(value) =>
-              updateField("monthly_budget", value[0])
-            }
+            onValueChange={(value) => updateField("monthly_budget", value[0])}
             aria-label="Monthly learning budget in rupees"
           />
 
@@ -314,16 +303,12 @@ export default function ProfileForm({
           ).length > 0 && (
             <div className="flex flex-wrap gap-2">
               {draft.interests
-                .filter(
-                  (interest) => !INTEREST_OPTIONS.includes(interest),
-                )
+                .filter((interest) => !INTEREST_OPTIONS.includes(interest))
                 .map((interest) => (
                   <CustomOption
                     key={interest}
                     value={interest}
-                    onRemove={() =>
-                      removeCustomOption("interests", interest)
-                    }
+                    onRemove={() => removeCustomOption("interests", interest)}
                   />
                 ))}
             </div>
@@ -396,14 +381,11 @@ export default function ProfileForm({
             ))}
           </div>
 
-          {draft.skills.filter(
-            (skill) => !SKILL_OPTIONS.includes(skill),
-          ).length > 0 && (
+          {draft.skills.filter((skill) => !SKILL_OPTIONS.includes(skill))
+            .length > 0 && (
             <div className="flex flex-wrap gap-2">
               {draft.skills
-                .filter(
-                  (skill) => !SKILL_OPTIONS.includes(skill),
-                )
+                .filter((skill) => !SKILL_OPTIONS.includes(skill))
                 .map((skill) => (
                   <CustomOption
                     key={skill}
@@ -415,23 +397,60 @@ export default function ProfileForm({
           )}
 
           {showSkillEditor ? (
-            <CustomOptionEditor
-              label="Skill"
-              value={customSkill}
-              onChange={setCustomSkill}
-              onAdd={() =>
-                addCustomOption(
-                  "skills",
-                  customSkill,
-                  setCustomSkill,
-                  setShowSkillEditor,
-                )
+            function CustomOptionEditor({
+              label,
+              value,
+              onChange,
+              onAdd,
+              onCancel,
+            }) {
+              function handleKeyDown(event) {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+
+                  if (value.trim()) {
+                    onAdd();
+                  }
+                }
               }
-              onCancel={() => {
-                setCustomSkill("");
-                setShowSkillEditor(false);
-              }}
-            />
+
+              return (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <input
+                    autoFocus
+                    aria-label={label}
+                    type="text"
+                    value={value}
+                    onChange={(event) => onChange(event.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={`Enter ${label.toLowerCase()}...`}
+                    maxLength={60}
+                    className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-violet-400/60 focus:ring-2 focus:ring-violet-400/10"
+                  />
+
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={!value.trim()}
+                    onClick={onAdd}
+                    className="gap-1.5 rounded-xl bg-violet-500 text-white hover:bg-violet-400"
+                  >
+                    <Plus size={14} />
+                    Add
+                  </Button>
+
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={onCancel}
+                    className="rounded-xl text-slate-400 hover:text-white"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              );
+            }
           ) : (
             <button
               type="button"
