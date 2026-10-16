@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import {
   AnimatePresence,
@@ -14,6 +15,13 @@ import {
   Plus,
   Trash2,
   GripVertical,
+  Sparkles,
+  Compass,
+  ArrowUpRight,
+  ShieldCheck,
+  MessageCircle,
+  Target,
+  BookOpen,
 } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -50,7 +58,7 @@ import MissionControl from "./components/mission/MissionControl";
 import { GLASS } from "./constants/styles";
 import { DEFAULT_PROFILE } from "./constants/profile";
 
-const GLASS_INTERACTIVE = `${GLASS} transition-colors hover:border-white/20 hover:bg-white/[0.07]`;
+const GLASS_INTERACTIVE = `${GLASS} transition-colors duration-200 hover:border-indigo-300/25 hover:bg-white/[0.065] motion-reduce:transition-none`;
 
 const CHAT_SUGGESTIONS = [
   "Which match should I start with?",
@@ -82,11 +90,33 @@ function useMediaQuery(query) {
     const handler = (event) => setMatches(event.matches);
 
     mediaQuery.addEventListener("change", handler);
-
     return () => mediaQuery.removeEventListener("change", handler);
   }, [query]);
 
   return matches;
+}
+
+function SectionEyebrow({ children }) {
+  return (
+    <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-300/15 bg-indigo-400/[0.07] px-3 py-1.5 text-[11px] font-medium tracking-[0.12em] text-indigo-200/90">
+      <span className="size-1.5 rounded-full bg-indigo-300 shadow-[0_0_10px_rgba(129,140,248,0.8)]" />
+      {children}
+    </div>
+  );
+}
+
+function FeatureItem({ icon: Icon, title, description }) {
+  return (
+    <div className="group flex gap-3 rounded-xl border border-white/[0.07] bg-white/[0.025] p-3.5 transition-colors duration-200 hover:border-indigo-300/20 hover:bg-white/[0.045] motion-reduce:transition-none">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-indigo-300/15 bg-indigo-400/[0.08] text-indigo-200">
+        <Icon size={17} strokeWidth={1.8} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-zinc-200">{title}</p>
+        <p className="mt-1 text-xs leading-5 text-zinc-500">{description}</p>
+      </div>
+    </div>
+  );
 }
 
 export default function App() {
@@ -106,12 +136,10 @@ export default function App() {
   const [matchError, setMatchError] = useState("");
   const [roadmapError, setRoadmapError] = useState("");
 
-  // Desktop workspace resizing.
   const [workspaceWidth, setWorkspaceWidth] = useState(DEFAULT_WORKSPACE_WIDTH);
   const [isResizingWorkspace, setIsResizingWorkspace] = useState(false);
   const resizeOrigin = useRef(null);
 
-  // Conversation history state.
   const [historyOpen, setHistoryOpen] = useState(false);
   const [conversations, setConversations] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -125,8 +153,6 @@ export default function App() {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const isChat = screen === "chat";
 
-  // Track pointer movement globally so dragging remains smooth even if
-  // the pointer briefly moves outside the divider.
   useEffect(() => {
     if (!isResizingWorkspace) return;
 
@@ -135,8 +161,6 @@ export default function App() {
 
       const { pointerX, initialWidth } = resizeOrigin.current;
 
-      // The workspace is attached to the right edge. Moving its divider
-      // left increases workspace width; moving right decreases it.
       setWorkspaceWidth(
         clampWorkspaceWidth(initialWidth + pointerX - event.clientX),
       );
@@ -173,14 +197,12 @@ export default function App() {
     };
   }, [isResizingWorkspace]);
 
-  // Keep the workspace within the available viewport after a resize.
   useEffect(() => {
     const handleWindowResize = () => {
       setWorkspaceWidth((width) => clampWorkspaceWidth(width));
     };
 
     window.addEventListener("resize", handleWindowResize);
-
     return () => window.removeEventListener("resize", handleWindowResize);
   }, []);
 
@@ -251,7 +273,6 @@ export default function App() {
 
       const id = href.endsWith("#explore") ? "explore" : "how-it-works";
 
-      // Wait for the onboarding view to render before scrolling.
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           const section = document.getElementById(id);
@@ -273,11 +294,7 @@ export default function App() {
   function addMessage(role, content) {
     setMessages((previous) => [
       ...previous,
-      {
-        id: `${Date.now()}-${Math.random()}`,
-        role,
-        content,
-      },
+      { id: `${Date.now()}-${Math.random()}`, role, content },
     ]);
   }
 
@@ -309,9 +326,7 @@ export default function App() {
   }
 
   async function handleLoadConversation(conversation) {
-    if (!conversation?.id || historyLoading || deletingConversationId) {
-      return;
-    }
+    if (!conversation?.id || historyLoading || deletingConversationId) return;
 
     setHistoryLoading(true);
     setHistoryError("");
@@ -340,9 +355,7 @@ export default function App() {
   }
 
   async function handleDeleteConversation(conversation) {
-    if (!conversation?.id || historyLoading || deletingConversationId) {
-      return;
-    }
+    if (!conversation?.id || historyLoading || deletingConversationId) return;
 
     const title =
       conversation.title && conversation.title !== "New conversation"
@@ -401,9 +414,7 @@ export default function App() {
           );
         }
       } finally {
-        if (!cancelled) {
-          setHistoryLoading(false);
-        }
+        if (!cancelled) setHistoryLoading(false);
       }
     }
 
@@ -482,7 +493,6 @@ export default function App() {
       addMessage("assistant", reply);
 
       setActiveConversationIdState(getActiveConversationId());
-
       void refreshConversations();
     } catch (err) {
       addMessage(
@@ -561,11 +571,17 @@ export default function App() {
   /* --------------------------------- Page -------------------------------- */
 
   const page = (
-    <main className="relative z-10 min-h-screen w-full text-zinc-100">
+    <main className="relative z-10 min-h-screen w-full overflow-x-clip text-zinc-100">
+      {/* Ambient lighting behind the application */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(60%_50%_at_15%_0%,rgba(99,102,241,0.20),transparent),radial-gradient(45%_40%_at_90%_100%,rgba(56,189,248,0.12),transparent)]"
-      />
+        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+      >
+        <div className="absolute -top-48 left-[12%] h-[440px] w-[440px] rounded-full bg-indigo-600/[0.13] blur-[120px]" />
+        <div className="absolute right-[-160px] top-[35%] h-[400px] w-[400px] rounded-full bg-violet-600/[0.08] blur-[120px]" />
+        <div className="absolute bottom-[-160px] left-[25%] h-[360px] w-[360px] rounded-full bg-blue-500/[0.07] blur-[110px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(9,9,15,0.05),rgba(9,9,15,0.5))]" />
+      </div>
 
       <Navbar
         links={
@@ -585,100 +601,303 @@ export default function App() {
       />
 
       {isChat && (
-        <div className="relative z-20 flex items-center justify-end gap-2 border-b border-white/[0.06] bg-zinc-950/60 px-4 py-2 sm:px-6">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setHistoryOpen(true);
-              void refreshConversations();
-            }}
-            className="border-white/10 bg-white/[0.03] text-xs text-zinc-300 hover:bg-white/[0.07] hover:text-zinc-100"
-          >
-            <History size={15} />
-            <span>History</span>
-          </Button>
+        <div className="relative z-20 border-b border-white/[0.07] bg-[#0b0b13]/75 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3 px-4 py-2.5 sm:px-6 lg:px-8">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-indigo-300/15 bg-indigo-400/[0.09] text-indigo-200">
+                <Sparkles size={16} />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-xs font-medium text-zinc-200">
+                  PathFinder workspace
+                </p>
+                <p className="mt-0.5 flex items-center gap-1.5 text-[10px] text-zinc-500">
+                  <span className="size-1.5 rounded-full bg-emerald-400" />
+                  Career guidance
+                </p>
+              </div>
+            </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setWorkspaceOpen((open) => !open)}
-            aria-expanded={workspaceOpen}
-            aria-label={workspaceOpen ? "Close workspace" : "Open workspace"}
-            className="border-white/10 bg-white/[0.03] text-xs text-zinc-300 hover:bg-white/[0.07] hover:text-zinc-100"
-          >
-            {workspaceOpen ? (
-              <PanelRightClose size={15} />
-            ) : (
-              <PanelRight size={15} />
-            )}
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setHistoryOpen(true);
+                  void refreshConversations();
+                }}
+                className="h-8 gap-1.5 border-white/10 bg-white/[0.025] text-xs text-zinc-300 transition-colors hover:border-indigo-300/25 hover:bg-indigo-400/[0.08] hover:text-white"
+              >
+                <History size={14} />
+                <span>History</span>
+              </Button>
 
-            <span className="hidden sm:inline">
-              {workspaceOpen ? "Hide workspace" : "Workspace"}
-            </span>
-          </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setWorkspaceOpen((open) => !open)}
+                aria-expanded={workspaceOpen}
+                aria-label={workspaceOpen ? "Close workspace" : "Open workspace"}
+                className={`h-8 gap-1.5 border-white/10 bg-white/[0.025] text-xs transition-colors hover:border-indigo-300/25 hover:bg-indigo-400/[0.08] hover:text-white ${
+                  workspaceOpen
+                    ? "border-indigo-300/25 bg-indigo-400/[0.08] text-indigo-100"
+                    : "text-zinc-300"
+                }`}
+              >
+                {workspaceOpen ? (
+                  <PanelRightClose size={14} />
+                ) : (
+                  <PanelRight size={14} />
+                )}
+                <span className="hidden sm:inline">
+                  {workspaceOpen ? "Hide workspace" : "Workspace"}
+                </span>
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 
       {!isChat ? (
-        <div className="mx-auto max-w-2xl px-4 py-12 sm:px-8">
-          <div className="mb-8">
-            <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">
-              Set up your profile
-            </h1>
+        <section className="relative mx-auto w-full max-w-7xl px-4 pb-16 pt-8 sm:px-6 sm:pt-12 lg:px-8 lg:pb-24 lg:pt-16">
+          <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,0.92fr)_minmax(440px,1.08fr)] lg:gap-14 xl:gap-20">
+            {/* Onboarding hero */}
+            <div className="relative lg:sticky lg:top-24">
+              <SectionEyebrow>
+                YOUR NEXT CHAPTER STARTS HERE
+              </SectionEyebrow>
 
-            <p className="mt-2 text-sm leading-6 text-zinc-400">
-              We use this to match careers and estimate a realistic plan. You
-              can change it at any time.
-            </p>
-          </div>
+              <h1 className="max-w-2xl text-4xl font-semibold leading-[1.08] tracking-[-0.045em] text-white sm:text-5xl lg:text-[3.7rem] xl:text-[4.15rem]">
+                Your future,
+                <br />
+                <span className="bg-gradient-to-r from-indigo-300 via-violet-300 to-blue-300 bg-clip-text text-transparent">
+                  without the guesswork.
+                </span>
+              </h1>
 
-          <ProfileForm
-            key={profile ? "edit" : "new"}
-            initialProfile={profile ?? DEFAULT_PROFILE}
-            submitting={matchBusy}
-            onSubmit={handleProfileSubmit}
-            onCancel={profile ? () => setScreen("chat") : undefined}
-          />
-        </div>
-      ) : (
-        <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-[1500px]">
-          <section className="flex min-w-0 flex-1 flex-col">
-            <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 sm:px-8">
-              <div className="py-6">
-                <h1 className="text-xl font-semibold tracking-tight text-zinc-100">
-                  Career chat
-                </h1>
+              <p className="mt-6 max-w-xl text-sm leading-7 text-zinc-400 sm:text-base sm:leading-8">
+                Discover career paths that fit your interests, understand which
+                skills to build, and turn your ambition into a realistic plan
+                you can follow.
+              </p>
 
-                <p className="mt-1 text-sm text-zinc-400">
-                  Ask about your matches, timelines, or what to learn next.
-                </p>
+              <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-zinc-400">
+                <span className="inline-flex items-center gap-2">
+                  <span className="flex size-5 items-center justify-center rounded-full bg-emerald-400/10 text-emerald-300">
+                    <ShieldCheck size={13} />
+                  </span>
+                  Built around your profile
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <span className="flex size-5 items-center justify-center rounded-full bg-indigo-400/10 text-indigo-300">
+                    <Sparkles size={13} />
+                  </span>
+                  AI-assisted guidance
+                </span>
               </div>
 
-              {profile && <ProfileSummary profile={profile} />}
+              <div className="mt-9 grid max-w-xl gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                <FeatureItem
+                  icon={Compass}
+                  title="Find your direction"
+                  description="Explore careers aligned with your interests and skills."
+                />
+                <FeatureItem
+                  icon={Target}
+                  title="Know your next step"
+                  description="See the skills you already have and what to develop."
+                />
+                <FeatureItem
+                  icon={BookOpen}
+                  title="Build a learning plan"
+                  description="Turn your goals and available time into a roadmap."
+                />
+                <FeatureItem
+                  icon={MessageCircle}
+                  title="Get ongoing guidance"
+                  description="Ask questions as you explore and refine your path."
+                />
+              </div>
+
+              <div className="mt-8 hidden max-w-xl items-center gap-3 border-t border-white/[0.08] pt-5 sm:flex">
+                <div className="flex -space-x-2">
+                  <span className="flex size-8 items-center justify-center rounded-full border-2 border-[#0a0c12] bg-indigo-400/20 text-indigo-200">
+                    <Compass size={14} />
+                  </span>
+                  <span className="flex size-8 items-center justify-center rounded-full border-2 border-[#0a0c12] bg-violet-400/20 text-violet-200">
+                    <Target size={14} />
+                  </span>
+                  <span className="flex size-8 items-center justify-center rounded-full border-2 border-[#0a0c12] bg-blue-400/20 text-blue-200">
+                    <BookOpen size={14} />
+                  </span>
+                </div>
+                <p className="text-xs leading-5 text-zinc-500">
+                  Discover options. Compare your matches. Plan what comes next.
+                </p>
+              </div>
+            </div>
+
+            {/* Profile form */}
+            <div className="min-w-0">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-indigo-300/80">
+                    {profile ? "Your profile" : "Step 01"}
+                  </p>
+                  <h2 className="mt-1.5 text-xl font-semibold tracking-tight text-white sm:text-2xl">
+                    {profile ? "Refine your profile" : "Let's find your path"}
+                  </h2>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-2">
+                  <span className="size-1.5 rounded-full bg-indigo-300" />
+                  <span className="text-[11px] text-zinc-400">
+                    {profile ? "Editable anytime" : "Personalized to you"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="relative">
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -inset-px rounded-2xl bg-gradient-to-b from-indigo-400/20 via-violet-400/[0.07] to-transparent blur-sm"
+                />
+                <div className="relative rounded-2xl border border-white/[0.10] bg-[#11111a]/90 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl sm:p-6">
+                  <div className="mb-5 flex items-start gap-3 border-b border-white/[0.07] pb-5">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-indigo-300/15 bg-gradient-to-br from-indigo-400/15 to-violet-400/[0.06] text-indigo-200">
+                      <Sparkles size={18} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-zinc-100">
+                        A little about you
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-zinc-500">
+                        Tell us what you're interested in and how much time you
+                        can invest.
+                      </p>
+                    </div>
+                  </div>
+
+                  <ProfileForm
+                    key={profile ? "edit" : "new"}
+                    initialProfile={profile ?? DEFAULT_PROFILE}
+                    submitting={matchBusy}
+                    onSubmit={handleProfileSubmit}
+                    onCancel={profile ? () => setScreen("chat") : undefined}
+                  />
+
+                  <div className="mt-5 flex items-start gap-2 border-t border-white/[0.07] pt-4">
+                    <ShieldCheck
+                      size={14}
+                      className="mt-0.5 shrink-0 text-zinc-500"
+                    />
+                    <p className="text-[11px] leading-5 text-zinc-500">
+                      Your answers help personalize recommendations. You can
+                      update your profile whenever your goals change.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : (
+        <div className="relative mx-auto flex min-h-[calc(100vh-7rem)] max-w-[1600px]">
+          <section className="flex min-w-0 flex-1 flex-col">
+            <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 sm:px-8">
+              <div className="relative py-7 sm:py-9">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-indigo-300/15 bg-gradient-to-br from-indigo-400/15 to-violet-400/[0.06] text-indigo-200 shadow-[0_0_28px_rgba(99,102,241,0.08)]">
+                    <Sparkles size={20} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-indigo-300/80">
+                      YOUR CAREER COMPANION
+                    </p>
+                    <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-[1.75rem]">
+                      Let's figure out your next move.
+                    </h1>
+                  </div>
+                </div>
+
+                <p className="mt-4 max-w-xl text-sm leading-6 text-zinc-400">
+                  Explore your matches, ask for advice, or turn a career goal
+                  into a practical learning plan.
+                </p>
+
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.025] px-3 py-1.5 text-[11px] text-zinc-400">
+                    <Target size={12} className="text-indigo-300" />
+                    Career matches
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.025] px-3 py-1.5 text-[11px] text-zinc-400">
+                    <BookOpen size={12} className="text-violet-300" />
+                    Learning roadmaps
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.025] px-3 py-1.5 text-[11px] text-zinc-400">
+                    <MessageCircle size={12} className="text-blue-300" />
+                    AI guidance
+                  </span>
+                </div>
+              </div>
+
+              {profile && (
+                <div className="mb-5 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-3 sm:p-4">
+                  <ProfileSummary profile={profile} />
+                </div>
+              )}
 
               <div
                 className="flex-1 space-y-4 pb-6"
                 aria-live="polite"
                 aria-relevant="additions"
               >
+                {messages.length === 0 && (
+                  <div className="relative overflow-hidden rounded-2xl border border-indigo-300/[0.13] bg-gradient-to-br from-indigo-500/[0.09] via-[#14131f]/90 to-violet-500/[0.05] p-5 sm:p-7">
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute -right-12 -top-12 size-44 rounded-full bg-indigo-500/[0.12] blur-3xl"
+                    />
+                    <div className="relative">
+                      <div className="mb-4 flex size-10 items-center justify-center rounded-xl border border-indigo-300/15 bg-indigo-400/[0.10] text-indigo-200">
+                        <Sparkles size={19} />
+                      </div>
+                      <h2 className="text-lg font-medium tracking-tight text-white">
+                        What would you like to work on?
+                      </h2>
+                      <p className="mt-2 max-w-lg text-sm leading-6 text-zinc-400">
+                        Start with a question about your career matches, your
+                        skills, or the best next step for your goals.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {messages.map((message) => (
                   <MessageBubble key={message.id} message={message} />
                 ))}
 
                 {(matchBusy || chatBusy) && (
-                  <div className="flex items-center gap-2 text-xs text-zinc-500">
-                    <LoaderCircle size={14} className="animate-spin" />
-                    {matchBusy
-                      ? "Comparing your profile with career paths"
-                      : "Thinking"}
+                  <div className="flex items-center gap-3 rounded-xl border border-indigo-300/[0.10] bg-indigo-400/[0.035] px-4 py-3 text-xs text-zinc-400">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-indigo-400/[0.10] text-indigo-200">
+                      <LoaderCircle size={15} className="animate-spin" />
+                    </span>
+                    <span>
+                      <span className="block font-medium text-zinc-200">
+                        {matchBusy ? "Finding your career matches" : "Thinking it through"}
+                      </span>
+                      <span className="mt-0.5 block text-zinc-500">
+                        {matchBusy
+                          ? "Comparing your profile with career paths…"
+                          : "Preparing a response for you…"}
+                      </span>
+                    </span>
                   </div>
                 )}
 
                 {matchError && (
-                  <Alert className="border-rose-900 bg-rose-950/40">
+                  <Alert className="border-rose-900/70 bg-rose-950/30">
                     <AlertDescription className="text-xs text-rose-200">
                       {matchError}
                     </AlertDescription>
@@ -688,35 +907,42 @@ export default function App() {
 
               {messages.length <= 1 && (
                 <div className="mb-5">
-                  <p className="mb-2 text-xs text-zinc-500">
-                    Suggested questions
+                  <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-500">
+                    A few places to start
                   </p>
 
-                  <div className="flex flex-col items-start gap-2">
-                    {CHAT_SUGGESTIONS.map((suggestion) => (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {CHAT_SUGGESTIONS.map((suggestion, index) => (
                       <Button
                         key={suggestion}
                         type="button"
                         variant="outline"
                         onClick={() => handleSend(suggestion)}
-                        disabled={chatBusy}
-                        className={`h-auto whitespace-normal rounded-lg px-3 py-2 text-left text-xs font-normal leading-5 text-zinc-300 hover:text-zinc-100 ${GLASS_INTERACTIVE}`}
+                        disabled={chatBusy || matchBusy}
+                        className={`group h-auto min-h-11 justify-between gap-3 whitespace-normal rounded-xl px-3.5 py-3 text-left text-xs font-normal leading-5 text-zinc-300 ${GLASS_INTERACTIVE}`}
                       >
-                        {suggestion}
+                        <span>{suggestion}</span>
+                        <ArrowUpRight
+                          size={14}
+                          className={`shrink-0 text-zinc-600 transition-colors group-hover:text-indigo-200 motion-reduce:transition-none ${
+                            index === 2 ? "hidden sm:block" : ""
+                          }`}
+                        />
                       </Button>
                     ))}
                   </div>
                 </div>
               )}
 
-              <div className="sticky bottom-0 pb-4 pt-2">
+              <div className="sticky bottom-0 z-10 -mx-2 bg-gradient-to-t from-[#0a0c12] via-[#0a0c12]/95 to-transparent px-2 pb-4 pt-5 sm:-mx-4 sm:px-4">
                 <ChatInput
                   onSend={handleSend}
                   disabled={chatBusy || matchBusy}
                 />
 
-                <p className="mt-2 text-center text-[11px] text-zinc-600">
-                  Scores are heuristic indicators, not employment predictions.
+                <p className="mt-3 text-center text-[10px] leading-5 text-zinc-600">
+                  AI guidance can help you explore options. Career scores are
+                  heuristic indicators, not employment predictions.
                 </p>
               </div>
             </div>
@@ -727,14 +953,13 @@ export default function App() {
               {workspaceOpen && (
                 <m.aside
                   key="workspace"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15 }}
+                  initial={{ opacity: 0, x: 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 8 }}
+                  transition={{ duration: 0.18 }}
                   style={{ width: `${workspaceWidth}px` }}
-                  className="sticky top-16 flex h-[calc(100vh-4rem)] shrink-0 flex-col self-start border-l border-white/10 bg-zinc-950/80"
+                  className="sticky top-0 flex h-[calc(100vh-7rem)] shrink-0 flex-col self-start border-l border-white/[0.08] bg-[#0c0c14]/85 backdrop-blur-xl"
                 >
-                  {/* Draggable divider */}
                   <div
                     role="separator"
                     aria-label="Resize chat and workspace panels"
@@ -762,14 +987,20 @@ export default function App() {
                     </span>
                   </div>
 
-                  <div className="border-b border-white/10 px-5 py-4">
-                    <p className="text-sm font-medium text-zinc-100">
-                      Workspace
-                    </p>
-
-                    <p className="mt-0.5 text-xs text-zinc-500">
-                      Matches and learning plan
-                    </p>
+                  <div className="border-b border-white/[0.07] bg-white/[0.015] px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-9 items-center justify-center rounded-xl border border-indigo-300/15 bg-indigo-400/[0.08] text-indigo-200">
+                        <Target size={16} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-zinc-100">
+                          Your workspace
+                        </p>
+                        <p className="mt-0.5 text-xs text-zinc-500">
+                          Matches, insights and learning plan
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
                   {workspace}
@@ -785,16 +1016,14 @@ export default function App() {
         <Sheet open={workspaceOpen} onOpenChange={setWorkspaceOpen}>
           <SheetContent
             side="right"
-            className="flex w-full flex-col gap-0 border-white/10 bg-zinc-950 p-0 text-zinc-100 sm:max-w-md"
+            className="flex w-full flex-col gap-0 border-white/[0.08] bg-[#0c0c14] p-0 text-zinc-100 sm:max-w-md"
           >
-            <SheetHeader className="border-b border-white/10 p-4">
-              <SheetTitle className="text-zinc-100">Workspace</SheetTitle>
-
+            <SheetHeader className="border-b border-white/[0.07] p-4">
+              <SheetTitle className="text-zinc-100">Your workspace</SheetTitle>
               <SheetDescription className="text-xs text-zinc-500">
                 Matches and learning plan
               </SheetDescription>
             </SheetHeader>
-
             {workspace}
           </SheetContent>
         </Sheet>
@@ -805,30 +1034,32 @@ export default function App() {
         <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
           <SheetContent
             side="left"
-            className="flex w-full flex-col gap-0 border-white/10 bg-zinc-950 p-0 text-zinc-100 sm:max-w-sm"
+            className="flex w-full flex-col gap-0 border-white/[0.08] bg-[#0c0c14] p-0 text-zinc-100 sm:max-w-sm"
           >
-            <SheetHeader className="border-b border-white/10 p-4 text-left">
+            <SheetHeader className="border-b border-white/[0.07] p-4 text-left">
+              <div className="mb-1 flex size-9 items-center justify-center rounded-xl border border-indigo-300/15 bg-indigo-400/[0.08] text-indigo-200">
+                <History size={17} />
+              </div>
               <SheetTitle className="text-zinc-100">Chat history</SheetTitle>
-
               <SheetDescription className="text-xs text-zinc-500">
                 Your saved PathFinder conversations
               </SheetDescription>
             </SheetHeader>
 
-            <div className="border-b border-white/10 p-4">
+            <div className="border-b border-white/[0.07] p-4">
               <Button
                 type="button"
                 onClick={handleNewChat}
-                className="w-full bg-indigo-500 text-white hover:bg-indigo-400"
+                className="h-10 w-full bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-[0_5px_22px_rgba(99,102,241,0.16)] transition-all hover:from-indigo-400 hover:to-violet-400"
               >
                 <Plus size={16} />
-                New Chat
+                New conversation
               </Button>
             </div>
 
             <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
               {historyError && (
-                <Alert className="border-rose-900 bg-rose-950/40">
+                <Alert className="border-rose-900/70 bg-rose-950/30">
                   <AlertDescription className="text-xs text-rose-200">
                     {historyError}
                   </AlertDescription>
@@ -846,14 +1077,15 @@ export default function App() {
                 !historyError &&
                 conversations.length === 0 && (
                   <div className="px-3 py-12 text-center">
-                    <History size={24} className="mx-auto mb-3 text-zinc-600" />
-
-                    <p className="text-sm text-zinc-300">
-                      No saved conversations yet
+                    <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.03] text-zinc-500">
+                      <History size={20} />
+                    </div>
+                    <p className="text-sm font-medium text-zinc-300">
+                      No conversations yet
                     </p>
-
-                    <p className="mt-2 text-xs leading-5 text-zinc-500">
-                      Your chats will appear here after you send a message.
+                    <p className="mx-auto mt-2 max-w-[230px] text-xs leading-5 text-zinc-500">
+                      Your saved chats will appear here when you start
+                      talking with PathFinder.
                     </p>
                   </div>
                 )}
@@ -865,10 +1097,10 @@ export default function App() {
                 return (
                   <div
                     key={conversation.id}
-                    className={`flex items-stretch gap-1 rounded-xl border p-2 transition-colors ${
+                    className={`flex items-stretch gap-1 rounded-xl border p-2 transition-colors motion-reduce:transition-none ${
                       isActive
-                        ? "border-indigo-400/30 bg-indigo-500/10"
-                        : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04]"
+                        ? "border-indigo-400/30 bg-indigo-500/[0.09]"
+                        : "border-white/[0.07] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04]"
                     }`}
                   >
                     <button
@@ -879,12 +1111,17 @@ export default function App() {
                         chatBusy
                       }
                       onClick={() => handleLoadConversation(conversation)}
-                      className="flex min-w-0 flex-1 items-start gap-3 rounded-lg p-1 text-left disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex min-w-0 flex-1 items-start gap-3 rounded-lg p-1.5 text-left disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <History
-                        size={16}
-                        className="mt-0.5 shrink-0 text-indigo-300"
-                      />
+                      <div
+                        className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg ${
+                          isActive
+                            ? "bg-indigo-400/[0.12] text-indigo-200"
+                            : "bg-white/[0.04] text-zinc-500"
+                        }`}
+                      >
+                        <History size={15} />
+                      </div>
 
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-zinc-200">
@@ -893,7 +1130,6 @@ export default function App() {
                             ? conversation.title
                             : "Conversation"}
                         </p>
-
                         <p className="mt-1 text-xs text-zinc-500">
                           {conversation.updated_at
                             ? new Date(conversation.updated_at).toLocaleString(
@@ -922,7 +1158,7 @@ export default function App() {
                       }`}
                       title="Delete conversation"
                       onClick={() => handleDeleteConversation(conversation)}
-                      className="h-9 w-9 shrink-0 self-center text-zinc-500 hover:bg-rose-500/10 hover:text-rose-300 disabled:opacity-40"
+                      className="h-9 w-9 shrink-0 self-center text-zinc-500 transition-colors hover:bg-rose-500/10 hover:text-rose-300 disabled:opacity-40"
                     >
                       {isDeleting ? (
                         <LoaderCircle size={15} className="animate-spin" />
@@ -935,7 +1171,7 @@ export default function App() {
               })}
             </div>
 
-            <div className="border-t border-white/10 px-4 py-3">
+            <div className="border-t border-white/[0.07] px-4 py-3">
               <p className="text-[11px] leading-5 text-zinc-600">
                 Deleting a conversation permanently removes its saved messages.
               </p>
@@ -950,7 +1186,9 @@ export default function App() {
     <MotionConfig reducedMotion="user">
       <LazyMotion features={domAnimation} strict>
         {isChat ? (
-          <DriftGrid className="bg-[#0a0c12] text-zinc-400">{page}</DriftGrid>
+          <DriftGrid className="min-h-screen bg-[#0a0c12] text-zinc-400">
+            {page}
+          </DriftGrid>
         ) : (
           <BackgroundPaths
             count={10}
